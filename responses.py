@@ -1,14 +1,11 @@
 import random
+import scraper
 
 
 def handle_response(message) -> str:
     p_message = message.lower()
 
-    if "hello" in p_message:
-        return "Hey there"
-
-    if p_message == "roll":
-        return str(random.randint(1, 6))
-
-    if p_message == "!help":
-        return "`This is a help message that you can modify`"
+    if "test scraper" in p_message:
+        article_data = scraper.fake_return()
+        article_1 = article_data[0]["content_text"]
+        return article_1
