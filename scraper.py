@@ -74,7 +74,10 @@ def get_article_data(driver, url):
 
 def main():
     # TODO: make the scraper to not restart driver every link (bypass Cloudflare)
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")
     driver = webdriver.Chrome(
+        options=options,
         service=ChromeService(executable_path=ChromeDriverManager().install()),
     )
     headline_links = get_today_headline(driver)
@@ -82,6 +85,7 @@ def main():
     article_data = []
     for link in headline_links:
         driver = webdriver.Chrome(
+            options=options,
             service=ChromeService(executable_path=ChromeDriverManager().install()),
         )
         article_data.append(get_article_data(driver, link))
