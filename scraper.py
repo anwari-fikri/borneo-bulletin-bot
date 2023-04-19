@@ -17,10 +17,6 @@ def get_today_headline(driver):
 
     Returns:
         A list of links (strings) to the articles
-
-    Raises:
-        NoSuchElementException: if no headlines are found
-        ValueError: if the website's date format is not "YYYY-MM-DD"
     """
     driver.get("https://borneobulletin.com.bn/category/headline/")
 
@@ -45,13 +41,26 @@ def get_today_headline(driver):
         except NoSuchElementException:
             continue
 
-    if not headline_links:
-        raise NoSuchElementException("No headlines found")
-
     return headline_links
 
 
 def get_article_data(driver, url):
+    """
+    Extract article data from a web page using Selenium.
+
+    Args:
+        driver: A Selenium webdriver instance.
+        url (str): The URL of the web page to extract data from.
+
+    Returns:
+        A dictionary with the following keys:
+        - url (str): The URL of the article.
+        - title (str): The title of the article.
+        - author (str): The name of the author of the article.
+        - content_text (str): The full text content of the article.
+
+        If an error occurs during extraction, the function returns None.
+    """
     driver.get(url)
 
     title_element = WebDriverWait(driver, 10).until(
@@ -69,6 +78,7 @@ def get_article_data(driver, url):
         "author": author,
         "content_text": content_text,
     }
+
     return article_data
 
 
