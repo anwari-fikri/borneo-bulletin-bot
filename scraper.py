@@ -6,6 +6,9 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
+import urllib.request
+import re
+import os
 
 
 def get_today_headline(driver):
@@ -71,15 +74,53 @@ def get_article_data(driver, url):
     content_elements = driver.find_elements(By.TAG_NAME, "p")
     author = content_elements[0].text
     content_text = " ".join([elem.text for elem in content_elements[1:]])
+    image_path = download_article_images(driver, title)
 
     article_data = {
         "url": url,
         "title": title,
         "author": author,
         "content_text": content_text,
+        "image_path": image_path,
     }
 
     return article_data
+
+
+def download_article_images(driver, title):
+    """
+    Download all images from a webpage and save them in a sub-folder named after the article's title in the 'image' directory.
+
+    Args:
+        driver: A Selenium webdriver instance.
+        title (str): The title of the article to create a sub-folder name.
+
+    Returns:
+        String of folder path of saved images. Images are saved in the 'image' directory in a sub-folder named after the article's title.
+        Each image is saved in the sub-folder as a .jpg file with a name corresponding to the order it appears on the page.
+    """
+
+    image_elements = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "img.size-full"))
+    )
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    }
+    sub_folder = re.sub(r"[^\w\s-]", "", title).strip().lower().replace(" ", "-")
+    folder = os.path.join("image", sub_folder)
+
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    for i, image_element in enumerate(image_elements):
+        image_url = image_element.get_attribute("src")
+        req = urllib.request.Request(image_url, headers=headers)
+        filename = f"{i+1}.jpg"
+        with urllib.request.urlopen(req) as url_response:
+            with open(os.path.join(folder, filename), "wb") as img_file:
+                img_file.write(url_response.read())
+
+    return folder
 
 
 def main():
