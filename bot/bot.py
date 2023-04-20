@@ -1,44 +1,40 @@
 import discord
-import os
 from cogs import responses
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-async def send_message(message, user_message):
-    try:
-        response = responses.handle_response(user_message)
-        await message.channel.send(response)
-    except Exception as e:
-        print(e)
+from scraper import scraper
+import os
+import asyncio
 
 
-def run_discord_bot():
+class BorneoBulletinBotClient(discord.Client):
+    async def on_ready(self):
+        print(f"Logged in as {self.user} (ID: {self.user.id})")
+        print(f"{self.user} is now running")
+
+    async def on_message(self, message):
+        if message.author.id == self.user.id:
+            return
+        
+        if message.content.startswith("whats brewing today"):
+            print(f"{message.author} said: {message.content}")
+            msg = await message.channel.send("Retrieving articles...")
+            responses = scraper.fake_return()
+            await msg.delete()
+            for response in responses:
+                # Format the message using Discord's markdown syntax
+                message_text = f"```**{response['title']}**\nby *{response['author']}*\n\n{response['content_text'][:1500]}```"
+                
+                await message.channel.send(message_text)
+                message_text = message_text
+                await asyncio.sleep(1)
+
+
+def main():
     TOKEN = os.getenv("TOKEN")
     intents = discord.Intents.default()
     intents.message_content = True
-    client = discord.Client(intents=intents)
-
-    @client.event
-    async def on_ready():
-        print(f"{client.user} is now running")
-
-    @client.event
-    async def on_message(message):
-        if message.author == client.user:
-            return
-
-        username = str(message.author)
-        user_message = str(message.content)
-        channel = str(message.channel)
-
-        print(f"{username} said: '{user_message}' ({channel})")
-        await send_message(message, user_message)
-
+    client = BorneoBulletinBotClient(intents=intents)
     client.run(TOKEN)
 
 
 if __name__ == "__main__":
-    run_discord_bot()
+    main()
