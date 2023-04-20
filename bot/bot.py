@@ -1,5 +1,4 @@
 import discord
-from cogs import responses
 from scraper import scraper
 import os
 import asyncio
@@ -20,12 +19,12 @@ class BorneoBulletinBotClient(discord.Client):
             responses = scraper.fake_return()
             await msg.delete()
             for response in responses:
-                # Format the message using Discord's markdown syntax
-                message_text = f"```**{response['title']}**\nby *{response['author']}*\n\n{response['content_text'][:1500]}```"
-                
-                await message.channel.send(message_text)
-                message_text = message_text
+                # Create a new embed
+                embed = discord.Embed(title=response['title'], url=response['url'], description=response['content_text'][:1500], color=0x00ff00)
+                embed.set_author(name=response['author'])
+                await message.channel.send(embed=embed)
                 await asyncio.sleep(1)
+
 
 
 def main():
