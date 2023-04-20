@@ -47,7 +47,7 @@ def get_today_headline(driver):
     return headline_links
 
 
-def get_article_data(driver, url):
+def get_article_data(driver, url, download_image=False):
     """
     Extract article data from a web page using Selenium.
 
@@ -70,19 +70,24 @@ def get_article_data(driver, url):
         EC.presence_of_element_located((By.TAG_NAME, "h1"))
     )
     title = title_element.text
-
     content_elements = driver.find_elements(By.TAG_NAME, "p")
     author = content_elements[0].text
     content_text = " ".join([elem.text for elem in content_elements[1:]])
-    image_path = download_article_images(driver, title)
+
+    if download_image:
+        image_path = download_article_images(driver, title)
+    else:
+        image_path = None
 
     article_data = {
         "url": url,
         "title": title,
         "author": author,
         "content_text": content_text,
-        "image_path": image_path,
     }
+
+    if download_image:
+        article_data["image_path"] = image_path
 
     return article_data
 
