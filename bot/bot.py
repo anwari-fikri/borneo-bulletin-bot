@@ -1,3 +1,4 @@
+import datetime
 import discord
 from scraper import scraper
 import os
@@ -8,6 +9,8 @@ class BorneoBulletinBotClient(discord.Client):
     async def on_ready(self):
         print(f"Logged in as {self.user} (ID: {self.user.id})")
         print(f"{self.user} is now running")
+        
+        self.loop.create_task(self.send_good_afternoon())
 
     async def on_message(self, message):
         if message.author.id == self.user.id:
@@ -24,6 +27,21 @@ class BorneoBulletinBotClient(discord.Client):
                 embed.set_author(name=response['author'])
                 await message.channel.send(embed=embed)
                 await asyncio.sleep(1)
+
+    async def send_good_afternoon(self):
+        # Get the current time
+        now = datetime.datetime.now()
+
+        # If the current time is before 4:30 pm, sleep until 4:30 pm
+        if now.hour < 16 or (now.hour == 16 and now.minute < 55):
+            delta = datetime.datetime(now.year, now.month, now.day, 16, 55) - now
+            await asyncio.sleep(delta.total_seconds())
+
+        # Get the channel by ID
+        channel = self.get_channel(1097395352291770441)
+
+        # Send the "good afternoon" message
+        await channel.send("Good afternoon!")
 
 
 
