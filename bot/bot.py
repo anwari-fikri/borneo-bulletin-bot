@@ -1,7 +1,7 @@
 import discord
-import responses
-
 import os
+from cogs import responses
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,3 +38,7 @@ def run_discord_bot():
         await send_message(message, user_message)
 
     client.run(TOKEN)
+
+
+if __name__ == "__main__":
+    run_discord_bot()

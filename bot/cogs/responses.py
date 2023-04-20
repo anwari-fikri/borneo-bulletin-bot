@@ -1,5 +1,4 @@
-import random
-import scraper
+from scraper import scraper
 
 
 def handle_response(message) -> str:
@@ -9,3 +8,6 @@ def handle_response(message) -> str:
         article_data = scraper.fake_return()
         article_1 = article_data[0]["content_text"]
         return article_1
+
+    if "hello" in p_message:
+        return "hi"
