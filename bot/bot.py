@@ -35,8 +35,8 @@ class BorneoBulletinBotClient(discord.Client):
         await self.wait_until_ready()
         now = datetime.datetime.now()
 
-        if now.hour < 14 or (now.hour == 14 and now.minute < 41):
-            delta = datetime.datetime(now.year, now.month, now.day, 14, 41) - now
+        if (now.hour == 19 and now.minute < 40):
+            delta = datetime.datetime(now.year, now.month, now.day, 19, 40) - now
             await asyncio.sleep(delta.total_seconds())
 
             for channel_id in self.enabled_channels:
