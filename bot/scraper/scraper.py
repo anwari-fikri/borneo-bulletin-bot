@@ -116,8 +116,8 @@ def get_article_image_thumbnail_url(driver):
 def main():
     # TODO: make the scraper to not restart driver every link (bypass Cloudflare)
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless=new")
-    # options.add_argument("--no-sandbox")
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(
         options=options,
         service=ChromeService(executable_path=ChromeDriverManager().install()),
