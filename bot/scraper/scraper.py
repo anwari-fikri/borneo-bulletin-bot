@@ -71,7 +71,11 @@ def get_article_data(driver, url, download_image=False):
     title = title_element.text
     content_elements = driver.find_elements(By.TAG_NAME, "p")
     author = content_elements[0].text
-    content_text = " ".join([elem.text for elem in content_elements[1:]])
+    if len(author.split()) <= 5:
+        content_text = " ".join([elem.text for elem in content_elements[1:]])
+    else:
+        author = ""
+        content_text = " ".join([elem.text for elem in content_elements[:]])
 
     if download_image:
         image_path = download_article_images(driver, title)

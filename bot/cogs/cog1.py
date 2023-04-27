@@ -18,7 +18,7 @@ class cog1(commands.Cog):
         await interaction.response.defer()
         await interaction.followup.send("Retrieving articles. This may take up to 1 minute...")
 
-        responses = scraper.fake_return()
+        responses = scraper.main()
         for response in responses:
             embed = discord.Embed(
                 title=response["title"],
