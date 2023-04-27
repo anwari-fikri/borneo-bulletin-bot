@@ -26,17 +26,16 @@ def get_today_headline(driver):
     today_date = datetime.today().strftime("%Y-%m-%d")
 
     articles = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".td-module-container"))
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".td_module_flex.td_module_flex_1.td_module_wrap.td-animation-stack"))
     )
 
     headline_links = []
     for article in articles:
         try:
-            category = article.find_element(By.CSS_SELECTOR, ".td-post-category")
             date = article.find_element(
                 By.CSS_SELECTOR, ".entry-date.updated.td-module-date"
             ).get_attribute("datetime")
-            if category.text.lower() == "headline" and date.startswith(today_date):
+            if date.startswith(today_date):
                 link = article.find_element(
                     By.CSS_SELECTOR, ".td-image-wrap"
                 ).get_attribute("href")
@@ -131,8 +130,8 @@ def download_article_images(driver, title):
 def main():
     # TODO: make the scraper to not restart driver every link (bypass Cloudflare)
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
+    # options.add_argument("--headless=new")
+    # options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(
         options=options,
         service=ChromeService(executable_path=ChromeDriverManager().install()),
