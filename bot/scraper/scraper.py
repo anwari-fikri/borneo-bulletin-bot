@@ -6,9 +6,6 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
-import urllib.request
-import re
-import os
 
 
 def get_today_headline(driver):
