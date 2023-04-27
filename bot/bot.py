@@ -1,65 +1,37 @@
-import datetime
 import discord
-from scraper import scraper
+from discord.ext import commands
+from colorama import Back, Fore, Style
+import time
+import platform
 import os
-import asyncio
+from dotenv import load_dotenv
+load_dotenv()
 
+class BorneoBulletinBotClient(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix=commands.when_mentioned_or('.'), intents=discord.Intents().all())
 
-class BorneoBulletinBotClient(discord.Client):
-    def __init__(self, intents=None):
-        super().__init__(intents=intents)
-        self.enabled_channels = set()
+        self.cogslist = ["cogs.cog1"]
+
+    async def setup_hook(self):
+      for ext in self.cogslist:
+        await self.load_extension(ext)
 
     async def on_ready(self):
-        print(f"Logged in as {self.user} (ID: {self.user.id})")
-        print(f"{self.user} is now running")
-        
-        self.loop.create_task(self.schedule_news())
-
-    async def on_message(self, message):
-        if message.author.id == self.user.id:
-            return
-        
-        if message.content.startswith("whats brewing today"):
-            print(f"{message.author} said: {message.content}")
-            await self.retrieve_articles(message.channel)
-
-        if message.content == "!enable_news":
-            self.enabled_channels.add(message.channel.id)
-            await message.channel.send("News bot enabled on this channel")
-        elif message.content == "!disable_news":
-            self.enabled_channels.remove(message.channel.id)
-            await message.channel.send("News bot enabled on this channel")
-
-    async def schedule_news(self):
-        await self.wait_until_ready()
-        now = datetime.datetime.now()
-
-        if (now.hour == 19 and now.minute < 40):
-            delta = datetime.datetime(now.year, now.month, now.day, 19, 40) - now
-            await asyncio.sleep(delta.total_seconds())
-
-            for channel_id in self.enabled_channels:
-                channel = self.get_channel(channel_id)
-                await self.retrieve_articles(channel)
-
-    async def retrieve_articles(self, channel):
-        msg = await channel.send("Retrieving articles...")
-        responses = scraper.fake_return()
-        await msg.delete()
-        for response in responses:
-            embed = discord.Embed(title=response['title'], url=response['url'], description=response['content_text'][:1500], color=0x00ff00)
-            embed.set_author(name=response['author'])
-            await channel.send(embed=embed)
-            await asyncio.sleep(1)
-
+        prefix = (Back.BLACK + Fore.GREEN + time.strftime("%H:%M:%S UTC", time.gmtime()) + Back.RESET + Fore.WHITE + Style.BRIGHT)
+        print(prefix + " Logged in as " + Fore.YELLOW + self.user.name)
+        print(prefix + " Bot ID " + Fore.YELLOW + str(self.user.id))
+        print(prefix + " Discord Version " + Fore.YELLOW + discord.__version__)
+        print(prefix + " Python Version " + Fore.YELLOW + str(platform.python_version()))
+        synced = await self.tree.sync()
+        print(prefix + " Slash CMDs Synced " + Fore.YELLOW + str(len(synced)) + " Commands")
 
 
 def main():
     TOKEN = os.getenv("TOKEN")
     intents = discord.Intents.default()
     intents.message_content = True
-    client = BorneoBulletinBotClient(intents=intents)
+    client = BorneoBulletinBotClient()
     client.run(TOKEN)
 
 
