@@ -27,6 +27,7 @@ class cog1(commands.Cog):
                 color=0x00FF00,
             )
             embed.set_author(name=response["author"])
+            embed.set_image(url=response["image_url"])
 
             await interaction.followup.send(embed=embed)
             await asyncio.sleep(1)

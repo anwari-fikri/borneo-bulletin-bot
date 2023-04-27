@@ -16,10 +16,10 @@ def get_today_headline(driver):
     Get the links to today's headlines from a specific category on a news website.
 
     Args:
-        driver: a Selenium webdriver instance
+        driver: A Selenium webdriver instance.
 
     Returns:
-        A list of links (strings) to the articles
+        A list of strings, each representing a link to an article.
     """
     driver.get("https://borneobulletin.com.bn/category/headline/")
 
@@ -48,18 +48,20 @@ def get_today_headline(driver):
 
 def get_article_data(driver, url, download_image=False):
     """
-    Extract article data from a web page using Selenium.
+    Extracts article data from a web page using Selenium.
 
     Args:
-        driver: A Selenium webdriver instance.
+        driver (selenium.webdriver): A Selenium webdriver instance.
         url (str): The URL of the web page to extract data from.
+        download_image (bool, optional): Whether to download and include the URL of the first thumbnail image of the article in the output. Default is False.
 
     Returns:
-        A dictionary with the following keys:
+        dict: A dictionary with the following keys:
         - url (str): The URL of the article.
         - title (str): The title of the article.
-        - author (str): The name of the author of the article.
+        - author (str): The name of the author of the article. If no author is found, this field is an empty string.
         - content_text (str): The full text content of the article.
+        - image_url (str, optional): The URL of the first thumbnail image of the article, if `download_image` is True. Otherwise, this field is not included.
 
         If an error occurs during extraction, the function returns None.
     """
@@ -78,9 +80,9 @@ def get_article_data(driver, url, download_image=False):
         content_text = " ".join([elem.text for elem in content_elements[:]])
 
     if download_image:
-        image_path = download_article_images(driver, title)
+        image_url = get_article_image_thumbnail_url(driver)
     else:
-        image_path = None
+        image_url = None
 
     article_data = {
         "url": url,
@@ -90,45 +92,28 @@ def get_article_data(driver, url, download_image=False):
     }
 
     if download_image:
-        article_data["image_path"] = image_path
+        article_data["image_url"] = image_url
 
     return article_data
 
 
-def download_article_images(driver, title):
+def get_article_image_thumbnail_url(driver):
     """
-    Download all images from a webpage and save them in a sub-folder named after the article's title in the 'image' directory.
+    Extracts the URL of the first thumbnail image of an article from a webpage using Selenium.
 
     Args:
-        driver: A Selenium webdriver instance.
-        title (str): The title of the article to create a sub-folder name.
+        driver (selenium.webdriver): A Selenium webdriver instance.
 
     Returns:
-        String of folder path of saved images. Images are saved in the 'image' directory in a sub-folder named after the article's title.
-        Each image is saved in the sub-folder as a .jpg file with a name corresponding to the order it appears on the page.
+        str: The URL of the first thumbnail image of the article, or None if no thumbnail is found.
     """
 
     image_elements = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located((By.CSS_SELECTOR, "img.size-full"))
+        EC.presence_of_element_located((By.CSS_SELECTOR, "img.size-full"))
     )
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
-    sub_folder = re.sub(r"[^\w\s-]", "", title).strip().lower().replace(" ", "-")
-    folder = os.path.join("image", sub_folder)
+    image_url = image_elements.get_attribute("src")
 
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    for i, image_element in enumerate(image_elements):
-        image_url = image_element.get_attribute("src")
-        req = urllib.request.Request(image_url, headers=headers)
-        filename = f"{i+1}.jpg"
-        with urllib.request.urlopen(req) as url_response:
-            with open(os.path.join(folder, filename), "wb") as img_file:
-                img_file.write(url_response.read())
-
-    return folder
+    return image_url
 
 
 def main():
@@ -148,7 +133,7 @@ def main():
             options=options,
             service=ChromeService(executable_path=ChromeDriverManager().install()),
         )
-        article_data.append(get_article_data(driver, link))
+        article_data.append(get_article_data(driver, link, download_image=True))
         driver.close()
 
     return article_data
