@@ -15,9 +15,9 @@ TODO
 
 ## Usage
 ### To make use of this bot, please request access or permission from me, as it is currently not available to the public.
-Invite the bot to your Discord server.
-Type /toggle_scheduled_news in any text channel to get a daily news headlines at the 9am Brunei time.
-Type /fetch_article in any text channel to get the news headlines for the day immeadiately.
+* Invite the bot to your Discord server.
+* Type /toggle_scheduled_news in any text channel to get a daily news headlines at the 9am Brunei time.
+* Type /fetch_article in any text channel to get the news headlines for the day immeadiately.
 
 ## Contributing
 Contributions are always welcome! Please feel free to submit a pull request if you have any improvements or new features to add. If you encounter any issues or bugs, please open an issue in the repository.
