@@ -1,5 +1,5 @@
-# Discord News Bot
-This is a Python-based Discord bot that scrapes a news website's Headline category, summarizes news articles using GPT-3.5, and posts them in a Discord channel. This bot is designed to provide daily news updates to users in an easy and efficient way.
+# Borneo Bulletin News Bot
+This is a Python-based Discord bot that scrapes a Borneo Bulletin website's Headline category, summarizes news articles using GPT-3.5, and posts them in a Discord channel. This bot is designed to provide daily news updates to users in an easy and efficient way.
 
 ## Features
 * Scrapes the Headline category of a news website using Python and Selenium. ✅
