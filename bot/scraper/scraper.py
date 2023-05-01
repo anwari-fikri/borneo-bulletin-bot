@@ -29,16 +29,16 @@ def get_today_headline(driver):
     headline_links = []
     for article in articles:
         try:
-            date = article.find_element(
-                By.CSS_SELECTOR, ".entry-date.updated.td-module-date"
-            ).get_attribute("datetime")
-            if date.startswith(today_date):
-                link = article.find_element(
-                    By.CSS_SELECTOR, ".td-image-wrap"
-                ).get_attribute("href")
-                headline_links.append(link)
+            category = article.find_element(By.CSS_SELECTOR, ".td-post-category").text.lower()
         except NoSuchElementException:
-            continue
+            category = ""
+        try:
+            date = article.find_element(By.CSS_SELECTOR, ".entry-date.updated.td-module-date").get_attribute("datetime")
+        except NoSuchElementException:
+            date = ""
+        if (category == "" or category == "headline") and date.startswith(today_date):
+            link = article.find_element(By.CSS_SELECTOR, ".td-image-wrap").get_attribute("href")
+            headline_links.append(link)
 
     return headline_links
 
