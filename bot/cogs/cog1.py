@@ -14,9 +14,17 @@ time = datetime.time(
 class cog1(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
-        # TODO: set channel must be stored in configuration file or environment variable so it doesn't clear when the bot restart
-        self.set_channel = []
+        try:
+            with open('set_channel.json', 'r') as f:
+                self.set_channel = json.load(f)
+        except FileNotFoundError:
+            self.set_channel = []
+
         self.scheduled_fetch_article.start()
+
+    def cog_unload(self):
+        with open('set_channel.json', 'w') as f:
+            json.dump(self.set_channel, f)
 
     @app_commands.command(
         name="toggle_scheduled_news",
@@ -33,6 +41,7 @@ class cog1(commands.Cog):
             await interaction.response.send_message(
                 content=f"Automated News Fetching is now **DISABLED** on #{interaction.channel}"
             )
+
 
     @app_commands.command(
         name="fetch_article", description="Fetch articles for today's date"

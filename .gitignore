@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # 
-image/
 today_headline.json
+set_channel.json
