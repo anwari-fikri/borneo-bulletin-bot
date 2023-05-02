@@ -135,8 +135,10 @@ def main():
 
     return article_data
 
+import time
 
 def fake_return():
+    time.sleep(20)
     return [
         {
             "url": "https://borneobulletin.com.bn/raya-treats-for-the-needy/",

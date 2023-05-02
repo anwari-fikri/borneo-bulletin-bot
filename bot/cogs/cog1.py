@@ -23,12 +23,13 @@ class cog1(commands.Cog):
             self.set_channel.remove(interaction.channel_id)
             await interaction.response.send_message(content=f"Automated News Fetching is now **DISABLED** on #{interaction.channel}")
 
+
     @app_commands.command(name="fetch_article", description="Fetch articles")
     async def fetch_article(self, interaction: discord.Interaction):
         await interaction.response.defer()
         await interaction.followup.send("Retrieving articles. This may take up to 1 minute...")
 
-        responses = scraper.main()
+        responses = await asyncio.to_thread(scraper.fake_return)
         for response in responses:
             embed = discord.Embed(
                 title=response["title"],
@@ -41,6 +42,8 @@ class cog1(commands.Cog):
 
             await interaction.followup.send(embed=embed)
             await asyncio.sleep(1)
+
+
     
     @tasks.loop(time=time)
     async def scheduled_fetch_article(self):
