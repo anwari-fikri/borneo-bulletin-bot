@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -25,6 +26,32 @@ class cog1(commands.Cog):
     def cog_unload(self):
         with open('set_channel.json', 'w') as f:
             json.dump(self.set_channel, f)
+
+    @app_commands.command(
+        name="help", description="Learn about commands"
+    )
+    async def help(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
+        embed = discord.Embed(
+            title="Borneo Bulletin Bot Commands",
+            description="Hello! I'm a news bot and I can help you stay up-to-date with the latest news from Borneo Bulletin. Below are the commands you can use to interact with me:",
+            color=discord.Color.yellow()
+        )
+        embed.add_field(
+            name="/toggle_scheduled_news",
+            value="Type this command in any text channel to receive a daily news headline at 9am Brunei time.",
+            inline=False
+        )
+        embed.add_field(
+            name="/fetch_article",
+            value="Type this command in any text channel to receive the news headlines for the day immediately.",
+            inline=False
+        )
+        embed.set_footer(text="That's it! Try these commands and stay informed with the latest news.")
+
+        await interaction.followup.send(embed=embed)
+
 
     @app_commands.command(
         name="toggle_scheduled_news",
@@ -55,6 +82,7 @@ class cog1(commands.Cog):
         today_headlines = self.fetch_article_data()
 
         for article_data in today_headlines["article_data"]:
+            await asyncio.sleep(0.5)
             await self.send_article_embed(
                 channel=interaction.channel, article_data=article_data
             )
@@ -66,6 +94,7 @@ class cog1(commands.Cog):
                 channel = await self.client.fetch_channel(channel_id)
                 today_headlines = self.fetch_article_data()
                 for article_data in today_headlines["article_data"]:
+                    await asyncio.sleep(0.5)
                     await self.send_article_embed(
                         channel=channel, article_data=article_data
                     )
@@ -77,7 +106,7 @@ class cog1(commands.Cog):
             title=article_data["title"],
             url=article_data["url"],
             description=article_data["content_text"][:1500],
-            color=0x00FF00,
+            color=discord.Color.yellow()
         )
         embed.set_author(name=article_data["author"])
         embed.set_image(url=article_data["image_url"])
