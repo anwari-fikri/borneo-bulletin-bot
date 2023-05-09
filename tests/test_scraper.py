@@ -20,6 +20,8 @@ def driver():
 
 def test_get_today_headline(driver):
     result = scraper.get_today_headline(driver)
+    assert isinstance(result, list)
+    assert all(isinstance(link, str) for link in result)
     assert all(link.startswith("https://borneobulletin.com.bn") for link in result)
 
 
