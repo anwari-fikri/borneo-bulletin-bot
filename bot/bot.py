@@ -5,26 +5,43 @@ import time
 import platform
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
+
 
 class BorneoBulletinBotClient(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned_or('.'), intents=discord.Intents().all())
+        super().__init__(intents=discord.Intents().all())
 
         self.cogslist = ["cogs.cog1"]
 
     async def setup_hook(self):
-      for ext in self.cogslist:
-        await self.load_extension(ext)
+        for ext in self.cogslist:
+            await self.load_extension(ext)
 
     async def on_ready(self):
-        prefix = (Back.BLACK + Fore.GREEN + time.strftime("%H:%M:%S UTC", time.gmtime()) + Back.RESET + Fore.WHITE + Style.BRIGHT)
+        prefix = (
+            Back.BLACK
+            + Fore.GREEN
+            + time.strftime("%H:%M:%S UTC", time.gmtime())
+            + Back.RESET
+            + Fore.WHITE
+            + Style.BRIGHT
+        )
         print(prefix + " Logged in as " + Fore.YELLOW + self.user.name)
         print(prefix + " Bot ID " + Fore.YELLOW + str(self.user.id))
         print(prefix + " Discord Version " + Fore.YELLOW + discord.__version__)
-        print(prefix + " Python Version " + Fore.YELLOW + str(platform.python_version()))
+        print(
+            prefix + " Python Version " + Fore.YELLOW + str(platform.python_version())
+        )
         synced = await self.tree.sync()
-        print(prefix + " Slash CMDs Synced " + Fore.YELLOW + str(len(synced)) + " Commands")
+        print(
+            prefix
+            + " Slash CMDs Synced "
+            + Fore.YELLOW
+            + str(len(synced))
+            + " Commands"
+        )
 
 
 def main():
