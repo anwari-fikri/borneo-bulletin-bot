@@ -1,3 +1,7 @@
+# Preview
+![demo](https://github.com/anwari-fikri/borneo-bulletin-bot/assets/50336496/7f430d7b-39c2-43ef-b0e7-f5a729358bfc)
+
+
 # Borneo Bulletin News Bot
 This is a Python-based Discord bot that scrapes a Borneo Bulletin website's Headline category, summarizes news articles using GPT-3.5, and posts them in a Discord channel. This bot is designed to provide daily news updates to users in an easy and efficient way.
 
