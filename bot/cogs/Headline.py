@@ -116,7 +116,7 @@ class Headline(commands.Cog):
 
         today_date = datetime.datetime.today().strftime("%Y-%m-%d")
         if today_headlines["date"] != today_date:
-            today_headlines = scraper.main()
+            today_headlines = scraper.today_headline_main()
         return today_headlines
 
 

@@ -7,6 +7,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import json
+import time
+
+# ========== HEADLINE ==========
 
 TODAY_HEADLINE = "./scraper/data/today_headline.json"
 
@@ -127,7 +130,7 @@ def get_article_image_thumbnail_url(driver):
     return image_url
 
 
-def main():
+def today_headline_main():
     # TODO: make the scraper to not restart driver every link (bypass Cloudflare)
     options = webdriver.ChromeOptions()
     options.add_argument("--headless=new")
@@ -157,7 +160,7 @@ def main():
     return today_headline
 
 
-def fake_return():
+def fake_return_headline():
     today_date = datetime.today().strftime("%Y-%m-%d")
     return {
         "date": today_date,
@@ -185,6 +188,91 @@ def fake_return():
             },
         ],
     }
+
+
+# ========== NATIONAL ==========
+
+
+def get_today_national(driver):
+    """
+    Get the links to today's national news from a specific category on a news website.
+
+    Args:
+        driver: A Selenium webdriver instance.
+
+    Returns:
+        A list of strings, each representing a link to an article.
+    """
+    driver.get("https://borneobulletin.com.bn/category/national/")
+    SCROLL_DOWN_FREQUENCY = 2
+    for _ in range(SCROLL_DOWN_FREQUENCY):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(3)
+
+    today_date = datetime.today().strftime("%Y-%m-%d")
+
+    articles = WebDriverWait(driver, 10).until(
+        EC.presence_of_all_elements_located(
+            (
+                By.CSS_SELECTOR,
+                ".td_module_flex.td_module_flex_1.td_module_wrap.td-animation-stack",
+            )
+        )
+    )
+
+    national_links = []
+    for article in articles:
+        # Get the date of the article
+        try:
+            date = article.find_element(
+                By.CSS_SELECTOR, ".entry-date.updated.td-module-date"
+            ).get_attribute("datetime")
+        except NoSuchElementException:
+            date = ""
+
+        # Get the 5 national news from hero section
+        try:
+            hero = article.find_element(By.CSS_SELECTOR, ".td-category-pos-above")
+        except:
+            hero = None
+
+        if hero != None and date.startswith(today_date):
+            link = article.find_element(
+                By.CSS_SELECTOR, ".td-image-wrap"
+            ).get_attribute("href")
+            national_links.append(link)
+            continue
+
+        # Get other National news below hero section
+        try:
+            category = article.find_element(
+                By.CSS_SELECTOR, ".td-post-category"
+            ).text.lower()
+        except NoSuchElementException:
+            category = ""
+
+        if category == "national" and date.startswith(today_date):
+            link = article.find_element(
+                By.CSS_SELECTOR, ".td-image-wrap"
+            ).get_attribute("href")
+            national_links.append(link)
+            continue
+
+    return national_links
+
+
+def main():
+    options = webdriver.ChromeOptions()
+    # options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(
+        options=options,
+        service=ChromeService(executable_path=ChromeDriverManager().install()),
+    )
+    national_links = get_today_national(driver)
+    for link in national_links:
+        print(link)
+    driver.close()
 
 
 if __name__ == "__main__":
