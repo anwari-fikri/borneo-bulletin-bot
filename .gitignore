@@ -128,6 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# 
+# Data
 today_headline.json
-set_channel.json
+set_channel_headline.json

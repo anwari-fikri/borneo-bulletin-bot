@@ -8,6 +8,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import json
 
+TODAY_HEADLINE = "./scraper/data/today_headline.json"
+
 
 def get_today_headline(driver):
     """
@@ -149,7 +151,7 @@ def main():
 
     today_headline = {"date": today_date, "article_data": article_data}
 
-    with open("./scraper/today_headline.json", "w") as outfile:
+    with open(TODAY_HEADLINE, "w") as outfile:
         json.dump(today_headline, outfile)
 
     return today_headline
