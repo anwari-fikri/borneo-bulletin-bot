@@ -3,12 +3,12 @@
 
 
 # Borneo Bulletin News Bot
-This is a Python-based Discord bot that scrapes a Borneo Bulletin website's Headline category and posts the headlines in a Discord channel. This bot is designed to provide daily news updates to users in an easy and efficient way.
+This is a Python-based Discord bot that scrapes the Borneo Bulletin website and posts the news articles in a Discord channel. This bot is designed to provide daily news updates to users in an easy and efficient way.
 
 ## Features
-- ✅ Scrapes the Headline category of a news website using Python and Selenium.
-- ✅ Retrieves all the headlines for the day.
-- ✅ Posts the headlines in a Discord channel.
+- ✅ Scrapes the articles using Python and Selenium.
+- ✅ Retrieves the articles for the day from selected categories. (Currently Headlines and National only)
+- ✅ Posts the news articles in a Discord channel.
 - ✅ Includes a hyperlink to the original article.
 - ✅ Runs automatically at a specific time every day.
 
