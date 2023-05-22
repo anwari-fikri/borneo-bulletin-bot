@@ -11,7 +11,10 @@ load_dotenv()
 
 class BorneoBulletinBotClient(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="bb ", intents=discord.Intents().all())
+        activity = discord.Game(name="/help")
+        super().__init__(
+            command_prefix="bb ", intents=discord.Intents().all(), activity=activity
+        )
 
         self.cogslist = ["cogs.General", "cogs.Headline", "cogs.National"]
 

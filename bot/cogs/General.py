@@ -18,13 +18,25 @@ class General(commands.Cog):
             description="Hello! I'm a news bot and I can help you stay up-to-date with the latest news from Borneo Bulletin Brunei. Below are the commands you can use to interact with me:",
             color=discord.Color.yellow(),
         )
+        embed.add_field(name="NATIONAL", value="", inline=False)
+        embed.add_field(
+            name="/toggle_scheduled_national",
+            value="Type this command in any text channel to receive a daily National news at 9am Brunei time.",
+            inline=False,
+        )
+        embed.add_field(
+            name="/fetch_national",
+            value="Type this command in any text channel to receive the National news for the day immediately.",
+            inline=False,
+        )
+        embed.add_field(name="HEADLINE", value="", inline=False)
         embed.add_field(
             name="/toggle_scheduled_headline",
             value="Type this command in any text channel to receive a daily news headline at 9am Brunei time.",
             inline=False,
         )
         embed.add_field(
-            name="/fetch_article",
+            name="/fetch_headline",
             value="Type this command in any text channel to receive the news headlines for the day immediately.",
             inline=False,
         )
