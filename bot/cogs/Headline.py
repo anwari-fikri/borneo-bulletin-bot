@@ -8,7 +8,7 @@ import json
 
 utc = datetime.timezone.utc
 time = datetime.time(
-    hour=3, minute=53, tzinfo=utc
+    hour=1, minute=00, tzinfo=utc
 )  # 1am utc = 9am gmt+8 (singapore time)
 
 CHANNEL_HEADLINE = "./data/set_channel_headline.json"
@@ -47,7 +47,7 @@ class Headline(commands.Cog):
             )
 
     @app_commands.command(
-        name="fetch_headline", description="Fetch articles for today's date"
+        name="fetch_headline", description="Fetch headline articles for today's date"
     )
     async def fetch_headline(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -116,7 +116,7 @@ class Headline(commands.Cog):
 
         today_date = datetime.datetime.today().strftime("%Y-%m-%d")
         if today_headlines["date"] != today_date:
-            today_headlines = scraper.today_headline_main()
+            today_headlines = scraper.main_headline()
         return today_headlines
 
 
