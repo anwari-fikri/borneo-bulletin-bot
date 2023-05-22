@@ -14,8 +14,8 @@ This is a Python-based Discord bot that scrapes a Borneo Bulletin website's Head
 
 ## Usage
 * Invite the Borneo Bulletin Bot to your Discord server.
-* Type /toggle_scheduled_news in any text channel to get a daily news headlines at the 9am Brunei time.
-* Type /fetch_article in any text channel to get the news headlines for the day immediately.
+* Type /toggle_scheduled_national in any text channel to get a daily national news at the 9am Brunei time.
+* Type /fetch_national in any text channel to get the national news for the day immediately.
 
 ## Project Structure
 
