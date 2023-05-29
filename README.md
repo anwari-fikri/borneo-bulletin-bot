@@ -13,7 +13,7 @@ This is a Python-based Discord bot that scrapes the Borneo Bulletin website and 
 - ✅ Runs automatically at a specific time every day.
 
 ## Usage
-* Invite the Borneo Bulletin Bot to your Discord server.
+* Invite the [Borneo Bulletin Bot](https://discord.com/api/oauth2/authorize?client_id=1097394756985819136&permissions=2147485696&scope=bot) to your Discord server.
 * Type /toggle_scheduled_national in any text channel to get a daily national news at the 9am Brunei time.
 * Type /fetch_national in any text channel to get the national news for the day immediately.
 
