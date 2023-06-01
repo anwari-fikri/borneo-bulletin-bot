@@ -1,8 +1,11 @@
-# Preview
+# Borneo Bulletin News Bot
+[![borneo-bulletin-bot](https://img.shields.io/badge/Invite-Borneo_Bulletin_Bot-blue)](https://discord.com/api/oauth2/authorize?client_id=1097394756985819136&permissions=2147485696&scope=bot)
+
+## Preview
 ![demo](https://github.com/anwari-fikri/borneo-bulletin-bot/assets/50336496/7f430d7b-39c2-43ef-b0e7-f5a729358bfc)
 
 
-# Borneo Bulletin News Bot
+
 This is a Python-based Discord bot that scrapes the Borneo Bulletin website and posts the news articles in a Discord channel. This bot is designed to provide daily news updates to users in an easy and efficient way.
 
 ## Features
