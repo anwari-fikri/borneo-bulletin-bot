@@ -125,7 +125,7 @@ def get_today_national(driver):
         A list of strings, each representing a link to an article.
     """
     driver.get("https://borneobulletin.com.bn/category/national/")
-    SCROLL_DOWN_FREQUENCY = 2
+    SCROLL_DOWN_FREQUENCY = 4
     for _ in range(SCROLL_DOWN_FREQUENCY):
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)
@@ -191,8 +191,6 @@ def main_national():
         service=ChromeService(executable_path=ChromeDriverManager().install()),
     )
     national_links = get_today_national(driver)
-    for link in national_links:
-        print(link)
     driver.close()
     article_data = []
     for link in national_links:
@@ -253,17 +251,15 @@ def get_article_data(driver, url, download_image=False):
     if download_image:
         image_url = get_article_image_thumbnail_url(driver)
     else:
-        image_url = None
+        image_url = ""
 
     article_data = {
         "url": url,
         "title": title,
         "author": author,
         "content_text": content_text,
+        "image_url": image_url,
     }
-
-    if download_image:
-        article_data["image_url"] = image_url
 
     return article_data
 
@@ -278,44 +274,27 @@ def get_article_image_thumbnail_url(driver):
     Returns:
         str: The URL of the first thumbnail image of the article, or None if no thumbnail is found.
     """
+    try:
+        image_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "img.size-full"))
+        )
+        image_url = image_element.get_attribute("src")
+        return image_url
+    except:
+        return ""
 
-    image_elements = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "img.size-full"))
-    )
-    image_url = image_elements.get_attribute("src")
 
-    return image_url
-
-
-def fake_return_article():
-    today_date = datetime.today().strftime("%Y-%m-%d")
-    return {
-        "date": today_date,
-        "article_data": [
-            {
-                "url": "https://borneobulletin.com.bn/raya-treats-for-the-needy/",
-                "title": "Raya treats for the needy",
-                "author": "Izah Azahari",
-                "content_text": "Network Integrity Assurance Technologies (NiAT) Sdn Bhd organised a charity shopping event titled ‘Shopping Raya with NiAT’ for 10 underprivileged families to support their Raya preparation needs yesterday. Held at the Hua Ho Department Store in OneCity Shopping Centre in Salambigar, the event was organised as part of NiAT’s corporate social responsibility (CSR) initiative this year and promote volunteerism to give back to society by instilling in its employees a caring culture that aids those who are less fortunate. During the event, NiAT covered up to BND300 worth of necessities for each of the selected family. Over 20 NiAT staff members assisted the families with their grocery purchases. NiAT’s Chief Executive Officer Lim Ming Soon said “We believe it is essential to show happiness in the lives of others, and we intend to uphold this belief through the initiative. “It gives us great delight to contribute to the happiness of these families. We are also pleased to provide them with financial assistance and bring them the joy of Hari Raya so that they, too, may enjoy the upcoming festivities as much as everyone else”. The families were identified by Projek Feed, a social enterprise focussing on aiding financially-challenged families.    ",
-                "image_url": "",
-            },
-            {
-                "url": "https://borneobulletin.com.bn/promoting-community-spirit-through-donation/",
-                "title": "Promoting community spirit through donation",
-                "author": "Azlan Othman",
-                "content_text": "Forty-four orphans of the Ministry of Religious Affairs (MoRA) workforce received donations yesterday at the ministry’s premises. Minister of Religious Affairs Pehin Udana Khatib Dato Paduka Seri Setia Ustaz Haji Awang Badaruddin bin Pengarah Dato Paduka Haji Awang Othman handed over the donations. The donations were aimed at easing the burden of the less fortunate while instilling good values among the ministry’s workforce through charity work and practices and to build a community within the ministry.  ",
-                "image_url": "",
-            },
-            {
-                "url": "https://borneobulletin.com.bn/ministry-holds-tedarus-al-quran-nationwide/",
-                "title": "Ministry holds Tedarus Al-Quran nationwide",
-                "author": "Daniel Lim & Adib Noor",
-                "content_text": "The Ministry of Culture, Youth and Sports (MCYS), through the Youth and Sports Department (JBS) held a youth Tedarus Al-Quran programme across the country to enliven the holy month of Ramadhan. In the Brunei-Muara District, the programme was held at Pintu Malim Mosque. Minister of Culture, Youth and Sports Dato Seri Setia Awang Haji Nazmi bin Haji Mohamad attended as the guest of honour. The event began with the recitation of Surah Al-Fatihah, led by the guest of honour, followed by Tedarus Al-Quran led by Pintu Malim Mosque imam Muhammad Syukri bin Pengiran Haji Sulaiman. Representatives from the Brunei History Centre, members of Bandar Seri Begawan Youth Club, Al-Busyra and alumni members of Asuhan Minda Belia Camp 2023 also participated. The ceremony continued with the recitation of Doa Tahlil, led by National Al-Quran Reading Competition for Youth 1443 Hijrah Qari runner-up Abdul Haziq Syarafuddin bin Abdul Habib. This was followed by Doa Peliharakan Sultan dan Negara Brunei Darussalam and a mass Zohor prayer.     Meanwhile, in the Temburong District, the ceremony was held at Kampong Batu Apoi, attended by Permanent Secretary (Sports) at the MCYS Pengiran Mohd Amirrizal bin Pengiran Haji Mahmud as the guest of honour. The event began with the recitation of Surah Al-Fatihah, led by the guest of honour, followed by Tedarus Al-Quran, led by Muhammad Nur Aziimin bin Shahminan from Belia Permata Hijau. This was followed by the recitation of Doa Tahlil led by Muhammad Zulkhairi bin Azamy from Belia Permata Hijau. The ceremony ended with Doa Peliharakan Sultan dan Negara Brunei Darussalam and a mass Zohor prayer led by the mosque’s imam, Shamsuddin bin Haji Azahari. In the Tutong District, the ceremony was held at Kampong Sinaut Mosque with Acting Director of Museums Pengiran Haji Rosli bin Pengiran Haji Halus attending as the guest of honour. The event began with the recitation of Surah Al-Fatihah led by the guest of honour followed by Tedarus Al-Quran led by the mosque’s imam Pengiran Muhd Fakhrin bin Pengiran Mohd Dani Muhammad. A Doa Tahlil was led by Muhammad Darwisy Afiq bin Jailani from the Tutong Youth Movement (IMPAK). The ceremony concluded with Doa Peliharakan Sultan dan Selamatkan Negara Brunei Darussalam and a mass Zohor prayer. Meanwhile, in the Belait District, the programme was held at Kampong Pandan Mosque. The event was attended by Acting Director of the National Service Division Major (Rtd) Haji Mohammad bin Dollah as the guest of honour. The programme started with the recitation of Surah Al-Fatihah led by the guest of honour, followed by the recitation of Tedarus Al-Quran, led by Haji Abdul Afiq bin Zainuddin from the Brunei Youth Council. The recitation of Doa Tahlil was led by Mohammad Nabil bin Mohammad Nordin from Religious Teachers University College of Seri Begawan (KUPU SB). The recitation of Doa Allah Peliharakan Sultan dan Negara Brunei Darussalam was led by Mosque Affairs Officer Abdul Qayyum bin Haji Aminnuddin. The guest of honour also presented a contribution from the Youth and Sports Department Belait District Branch to Abdul Qayyum. The event concluded with a mass Zohor prayer.  ",
-                "image_url": "",
-            },
-        ],
-    }
 
 
 if __name__ == "__main__":
+    # options = webdriver.ChromeOptions()
+    # options.add_argument("--headless=new")
+    # options.add_argument("--no-sandbox")
+    # driver = webdriver.Chrome(
+    #     options=options,
+    #     service=ChromeService(executable_path=ChromeDriverManager().install()),
+    # )
+    # url = "https://borneobulletin.com.bn/what-it-should-have-been/"
+    # data = get_article_data(driver, url, download_image=True)
+    # print(data)
     main_headline()

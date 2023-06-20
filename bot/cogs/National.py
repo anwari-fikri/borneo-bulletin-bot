@@ -99,7 +99,8 @@ class National(commands.Cog):
             color=discord.Color.red(),
         )
         embed.set_author(name=article_data["author"])
-        embed.set_image(url=article_data["image_url"])
+        if article_data["image_url"] != "":
+            embed.set_image(url=article_data["image_url"])
 
         await channel.send(embed=embed)
 
