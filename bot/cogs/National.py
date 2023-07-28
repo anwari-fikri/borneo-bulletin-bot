@@ -51,6 +51,9 @@ class National(commands.Cog):
                 content=f"Automated National News Fetching is now **DISABLED** on #{interaction.channel}"
             )
 
+        with open(CHANNEL, "w") as f:
+            json.dump(self.set_channel, f)
+
     @app_commands.command(
         name="fetch_national", description="Fetch national articles for today's date"
     )
