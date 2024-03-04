@@ -23,6 +23,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt  # Replace with the name of your requirements file, if you have one
 
+      - name: Install webdriver
+        run: |
+          python3 -m pip install webdriver-manager --upgrade
+          python3 -m pip install packaging
+
       - name: Run pytest
         run: |
           pytest
