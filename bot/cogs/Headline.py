@@ -5,6 +5,7 @@ from discord import app_commands
 from scraper import scraper
 import datetime
 import json
+import logging
 
 utc = datetime.timezone.utc
 time = datetime.time(
@@ -71,18 +72,24 @@ class Headline(commands.Cog):
     async def scheduled_fetch_headline(self):
         if self.set_channel != []:
             for channel_id in self.set_channel:
-                channel = await self.client.fetch_channel(channel_id)
-                today_headlines = self.fetch_headline_data()
-                if today_headlines["article_data"] == []:
-                    await channel.send(
-                        embed=discord.Embed(description="No new headline today ☹️")
-                    )
-                else:
-                    for article_data in today_headlines["article_data"]:
-                        await asyncio.sleep(0.5)
-                        await self.send_article_embed(
-                            channel=channel, article_data=article_data
+                try:
+                    channel = await self.client.fetch_channel(channel_id)
+                    today_headlines = self.fetch_headline_data()
+                    if today_headlines["article_data"] == []:
+                        await channel.send(
+                            embed=discord.Embed(description="No new headline today ☹️")
                         )
+                    else:
+                        for article_data in today_headlines["article_data"]:
+                            await asyncio.sleep(0.5)
+                            await self.send_article_embed(
+                                channel=channel, article_data=article_data
+                            )
+                except Exception as e:
+                    logging.error(f"An error occurred: {e}")
+                    logging.error(
+                        f"Channel permission not granted in: [{channel_id}]")
+
 
     async def send_article_embed(
         self, channel: discord.TextChannel, article_data: dict
