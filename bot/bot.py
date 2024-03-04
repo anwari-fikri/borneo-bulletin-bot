@@ -16,7 +16,7 @@ class BorneoBulletinBotClient(commands.Bot):
             command_prefix="bb ", intents=discord.Intents().all(), activity=activity
         )
 
-        self.cogslist = ["cogs.General", "cogs.Headline", "cogs.National"]
+        self.cogslist = ["cogs.General", "cogs.National"] 
 
     async def setup_hook(self):
         for ext in self.cogslist:

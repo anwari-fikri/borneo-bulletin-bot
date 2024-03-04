@@ -29,17 +29,17 @@ class General(commands.Cog):
             value="Type this command in any text channel to receive the National news for the day immediately.",
             inline=False,
         )
-        embed.add_field(name="HEADLINE", value="", inline=False)
-        embed.add_field(
-            name="/toggle_scheduled_headline",
-            value="Type this command in any text channel to receive a daily news headline at 9am Brunei time.",
-            inline=False,
-        )
-        embed.add_field(
-            name="/fetch_headline",
-            value="Type this command in any text channel to receive the news headlines for the day immediately.",
-            inline=False,
-        )
+        # embed.add_field(name="HEADLINE", value="", inline=False)
+        # embed.add_field(
+        #     name="/toggle_scheduled_headline",
+        #     value="Type this command in any text channel to receive a daily news headline at 9am Brunei time.",
+        #     inline=False,
+        # )
+        # embed.add_field(
+        #     name="/fetch_headline",
+        #     value="Type this command in any text channel to receive the news headlines for the day immediately.",
+        #     inline=False,
+        # )
         embed.set_footer(
             text="That's it! Try these commands and stay informed with the latest news."
         )

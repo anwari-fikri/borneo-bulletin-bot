@@ -5,6 +5,8 @@ from discord import app_commands
 from scraper import scraper
 import datetime
 import json
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 utc = datetime.timezone.utc
 time = datetime.time(
@@ -51,7 +53,7 @@ class National(commands.Cog):
                 content=f"Automated National News Fetching is now **DISABLED** on #{interaction.channel}"
             )
 
-        with open(CHANNEL, "w") as f:
+        with open(CHANNEL_NATIONAL, "w") as f:
             json.dump(self.set_channel, f)
 
     @app_commands.command(
@@ -59,21 +61,25 @@ class National(commands.Cog):
     )
     async def fetch_national(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        await interaction.followup.send(
-            "Retrieving articles. This may take up few minutes..."
-        )
-
-        today_national = self.fetch_national_data()
-        if today_national["article_data"] == []:
-            await interaction.channel.send(
-                embed=discord.Embed(description="No new national news today ☹️")
+        try:
+            await interaction.followup.send(
+                "Retrieving articles. This may take up few minutes..."
             )
-        else:
-            for article_data in today_national["article_data"]:
-                await asyncio.sleep(0.5)
-                await self.send_article_embed(
-                    channel=interaction.channel, article_data=article_data
+
+            today_national = self.fetch_national_data()
+            if today_national["article_data"] == []:
+                await interaction.channel.send(
+                    embed=discord.Embed(description="No new national news today ☹️")
                 )
+            else:
+                for article_data in today_national["article_data"]:
+                    await asyncio.sleep(0.5)
+                    await self.send_article_embed(
+                        channel=interaction.channel, article_data=article_data
+                    )
+        except Exception as e:
+            logging.error(f"An error occurred: {e}", exc_info=True)
+            await interaction.followup.send("Something went wrong. Could not retrieve articles.")
 
     @tasks.loop(time=time)
     async def scheduled_fetch_national(self):
@@ -112,7 +118,8 @@ class National(commands.Cog):
             with open(TODAY_NATIONAL, "r") as f:
                 today_national = json.load(f)
         except FileNotFoundError as e:
-            print("JSON file not found: %s", e)
+            logging.info("JSON file not found: %s", e)
+            logging.info("Creating new JSON file %s", e)
             today_national = {
                 "date": "",
                 "article_data": {
