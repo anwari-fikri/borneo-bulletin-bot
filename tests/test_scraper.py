@@ -14,12 +14,12 @@ def options():
 
 
 class TestScraper:
-    def test_get_today_headline(self, options):
+    def test_get_today_national(self, options):
         driver = webdriver.Chrome(
             options=options,
             service=ChromeService(executable_path=ChromeDriverManager().install()),
         )
-        result = scraper.get_today_headline(driver)
+        result = scraper.get_today_national(driver)
         assert isinstance(result, list)
         assert all(isinstance(link, str) for link in result)
         assert all(link.startswith("https://borneobulletin.com.bn") for link in result)
