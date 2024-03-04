@@ -1,5 +1,3 @@
-# Hi this bot is dead. too lazy to fix :D
-
 # Borneo Bulletin News Bot
 [![borneo-bulletin-bot](https://img.shields.io/badge/Invite-Borneo_Bulletin_Bot-blue)](https://discord.com/api/oauth2/authorize?client_id=1097394756985819136&permissions=2147485696&scope=bot)
 
