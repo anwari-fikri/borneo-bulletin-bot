@@ -10,106 +10,7 @@ import json
 import time
 import os
 
-TODAY_HEADLINE = "./scraper/data/today_headline.json"
 TODAY_NATIONAL = "./scraper/data/today_national.json"
-
-# ========== HEADLINE ==========
-
-
-def get_today_headline(driver):
-    """
-    Get the links to today's headlines from a specific category on a news website.
-
-    Args:
-        driver: A Selenium webdriver instance.
-
-    Returns:
-        A list of strings, each representing a link to an article.
-    """
-    driver.get("https://borneobulletin.com.bn/category/headline/")
-
-    today_date = datetime.today().strftime("%Y-%m-%d")
-
-    articles = WebDriverWait(driver, 10).until(
-        EC.presence_of_all_elements_located(
-            (
-                By.CSS_SELECTOR,
-                ".td_module_flex.td_module_flex_1.td_module_wrap.td-animation-stack",
-            )
-        )
-    )
-
-    headline_links = []
-    for article in articles:
-        # Get the date of the article
-        try:
-            date = article.find_element(
-                By.CSS_SELECTOR, ".entry-date.updated.td-module-date"
-            ).get_attribute("datetime")
-        except NoSuchElementException:
-            date = ""
-
-        # Get the 5 headline news from hero section
-        try:
-            hero = article.find_element(By.CSS_SELECTOR, ".td-category-pos-above")
-        except:
-            hero = None
-
-        if hero != None and date.startswith(today_date):
-            link = article.find_element(
-                By.CSS_SELECTOR, ".td-image-wrap"
-            ).get_attribute("href")
-            headline_links.append(link)
-            continue
-
-        # Get other headline news below hero section
-        try:
-            category = article.find_element(
-                By.CSS_SELECTOR, ".td-post-category"
-            ).text.lower()
-        except NoSuchElementException:
-            category = ""
-
-        if category == "headline" and date.startswith(today_date):
-            link = article.find_element(
-                By.CSS_SELECTOR, ".td-image-wrap"
-            ).get_attribute("href")
-            headline_links.append(link)
-            continue
-
-    return headline_links
-
-
-def main_headline():
-    # TODO: make the scraper to not restart driver every link (bypass Cloudflare)
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(
-        options=options,
-        service=ChromeService(executable_path=ChromeDriverManager().install()),
-    )
-    headline_links = get_today_headline(driver)
-    driver.close()
-    article_data = []
-    for link in headline_links:
-        driver = webdriver.Chrome(
-            options=options,
-            service=ChromeService(executable_path=ChromeDriverManager().install()),
-        )
-        article_data.append(get_article_data(driver, link, download_image=True))
-        driver.close()
-
-    today_date = datetime.today().strftime("%Y-%m-%d")
-    today_headline = {"date": today_date, "article_data": article_data}
-
-    directory = os.path.dirname(TODAY_HEADLINE)
-    os.makedirs(directory, exist_ok=True)
-    with open(TODAY_HEADLINE, "w") as outfile:
-        json.dump(today_headline, outfile)
-
-    return today_headline
-
 
 # ========== NATIONAL ==========
 
@@ -184,22 +85,18 @@ def get_today_national(driver):
 
 def main_national():
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
+    # options.add_argument("--headless=new")
+    # options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(
         options=options,
         service=ChromeService(executable_path=ChromeDriverManager().install()),
     )
     national_links = get_today_national(driver)
-    driver.close()
+    driver.delete_all_cookies()
     article_data = []
     for link in national_links:
-        driver = webdriver.Chrome(
-            options=options,
-            service=ChromeService(executable_path=ChromeDriverManager().install()),
-        )
         article_data.append(get_article_data(driver, link, download_image=True))
-        driver.close()
+        driver.delete_all_cookies()
 
     today_date = datetime.today().strftime("%Y-%m-%d")
     today_national = {"date": today_date, "article_data": article_data}
@@ -287,14 +184,4 @@ def get_article_image_thumbnail_url(driver):
 
 
 if __name__ == "__main__":
-    # options = webdriver.ChromeOptions()
-    # options.add_argument("--headless=new")
-    # options.add_argument("--no-sandbox")
-    # driver = webdriver.Chrome(
-    #     options=options,
-    #     service=ChromeService(executable_path=ChromeDriverManager().install()),
-    # )
-    # url = "https://borneobulletin.com.bn/what-it-should-have-been/"
-    # data = get_article_data(driver, url, download_image=True)
-    # print(data)
-    main_headline()
+    main_national()
