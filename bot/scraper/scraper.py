@@ -85,8 +85,8 @@ def get_today_national(driver):
 
 def main_national():
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless=new")
-    # options.add_argument("--no-sandbox")
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
     driver = webdriver.Chrome(
         options=options,
         service=ChromeService(executable_path=ChromeDriverManager().install()),
