@@ -8,6 +8,8 @@ import json
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
+log = logging.getLogger(__name__)
+
 utc = datetime.timezone.utc
 time = datetime.time(
     hour=1, minute=00, tzinfo=utc
@@ -45,12 +47,14 @@ class National(commands.Cog):
         if interaction.channel_id not in self.set_channel:
             self.set_channel.append(interaction.channel_id)
             await interaction.response.send_message(
-                content=f"Automated National News Fetching is now **ENABLED** on #{interaction.channel}"
+                content=f"Automated National News Fetching is now **ENABLED** on #{
+                    interaction.channel}"
             )
         elif interaction.channel_id in self.set_channel:
             self.set_channel.remove(interaction.channel_id)
             await interaction.response.send_message(
-                content=f"Automated National News Fetching is now **DISABLED** on #{interaction.channel}"
+                content=f"Automated National News Fetching is now **DISABLED** on #{
+                    interaction.channel}"
             )
 
         with open(CHANNEL_NATIONAL, "w") as f:
@@ -69,7 +73,8 @@ class National(commands.Cog):
             today_national = self.fetch_national_data()
             if today_national["article_data"] == []:
                 await interaction.channel.send(
-                    embed=discord.Embed(description="No new national news today ☹️")
+                    embed=discord.Embed(
+                        description="No new national news today ☹️")
                 )
             else:
                 for article_data in today_national["article_data"]:
@@ -85,18 +90,23 @@ class National(commands.Cog):
     async def scheduled_fetch_national(self):
         if self.set_channel != []:
             for channel_id in self.set_channel:
-                channel = await self.client.fetch_channel(channel_id)
-                today_nationals = self.fetch_national_data()
-                if today_nationals["article_data"] == []:
-                    await channel.send(
-                        embed=discord.Embed(description="No new national news today ☹️")
-                    )
-                else:
-                    for article_data in today_nationals["article_data"]:
-                        await asyncio.sleep(0.5)
-                        await self.send_article_embed(
-                            channel=channel, article_data=article_data
+                try:
+                    channel = await self.client.fetch_channel(channel_id)
+                    today_nationals = self.fetch_national_data()
+                    if today_nationals["article_data"] == []:
+                        await channel.send(
+                            embed=discord.Embed(
+                                description="No new national news today ☹️")
                         )
+                    else:
+                        for article_data in today_nationals["article_data"]:
+                            await asyncio.sleep(0.5)
+                            await self.send_article_embed(
+                                channel=channel, article_data=article_data
+                            )
+                except Exception as e:
+                    log.error(f"An error occurred: {e}")
+                    log.error("Probably channel permission not granted")
 
     async def send_article_embed(
         self, channel: discord.TextChannel, article_data: dict
