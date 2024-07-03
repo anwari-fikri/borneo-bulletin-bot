@@ -47,20 +47,20 @@ class National(commands.Cog):
         if interaction.channel_id not in self.set_channel:
             self.set_channel.append(interaction.channel_id)
             await interaction.response.send_message(
-                content=f"Automated National News Fetching is now **ENABLED** on #{
-                    interaction.channel}"
+                # {
+                content=f"Automated National News Fetching is now ** ENABLED ** on {interaction.channel}"
             )
         elif interaction.channel_id in self.set_channel:
             self.set_channel.remove(interaction.channel_id)
             await interaction.response.send_message(
-                content=f"Automated National News Fetching is now **DISABLED** on #{
-                    interaction.channel}"
+                # {
+                content=f"Automated National News Fetching is now ** DISABLED ** on {interaction.channel}"
             )
 
         with open(CHANNEL_NATIONAL, "w") as f:
             json.dump(self.set_channel, f)
 
-    @app_commands.command(
+    @ app_commands.command(
         name="fetch_national", description="Fetch national articles for today's date"
     )
     async def fetch_national(self, interaction: discord.Interaction):
@@ -86,7 +86,7 @@ class National(commands.Cog):
             logging.error(f"An error occurred: {e}", exc_info=True)
             await interaction.followup.send("Something went wrong. Could not retrieve articles.")
 
-    @tasks.loop(time=time)
+    @ tasks.loop(time=time)
     async def scheduled_fetch_national(self):
         if self.set_channel != []:
             for channel_id in self.set_channel:
