@@ -1,0 +1,20 @@
+{
+  "national": [
+    {
+      "url": "https://borneobulletin.com.bn/example-article-title/",
+      "title": "Example Article Title",
+      "date": "2025-11-26T10:30:00+08:00",
+      "content": "This is the main content of the article. It includes all paragraphs extracted from the article page.",
+      "featured_image": "https://example.com/image.jpg",
+      "featured_caption": "Optional caption for the featured image"
+    },
+    {
+      "url": "https://borneobulletin.com.bn/another-example-article/",
+      "title": "Another Example Article",
+      "date": "2025-11-26T09:15:00+08:00",
+      "content": "Another article's content goes here.",
+      "featured_image": "https://example.com/another-image.jpg",
+      "featured_caption": "Another image caption"
+    }
+  ]
+}
