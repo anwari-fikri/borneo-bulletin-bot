@@ -140,16 +140,16 @@ def save_links_to_file(all_links):
     print(f"Removed articles: {len(removed_articles)}")
 
     if new_articles:
-        print(f"\n🆕 New Articles:")
+        print(f"\n[NEW] New Articles:")
         for article in sorted(new_articles):
             print(f"  - {article}")
 
     if removed_articles:
-        print(f"\n❌ Removed Articles:")
+        print(f"\n[REMOVED] Removed Articles:")
         for article in sorted(removed_articles):
             print(f"  - {article}")
 
-    print(f"\n✅ Links saved to {TODAY_LINKS_FILE}")
+    print(f"\n[OK] Links saved to {TODAY_LINKS_FILE}")
     print(f"{'='*60}\n")
 
     return {
@@ -165,7 +165,7 @@ def save_links_to_file(all_links):
 async def fetch_category_articles(category_name, url, pagination_selector):
     links = []
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         await page.goto(url)
 
@@ -225,10 +225,23 @@ async def fetch_category_articles(category_name, url, pagination_selector):
     return links
 
 
-async def main():
+async def main(categories=None):
+    """
+    Scrape articles for specified categories or all if not specified.
+    
+    Args:
+        categories: list of category names to scrape, or None for all
+    """
+    if categories is None:
+        categories_to_scrape = CATEGORIES
+    else:
+        categories_to_scrape = {k: v for k, v in CATEGORIES.items() if k in categories}
+    
     all_links = {}
-    for category, info in CATEGORIES.items():
-        print(f"Fetching articles for {category}...")
+    total_categories = len(categories_to_scrape)
+    
+    for idx, (category, info) in enumerate(categories_to_scrape.items(), 1):
+        print(f"\n[{idx}/{total_categories}] Fetching articles for {category}...")
         all_links[category] = await fetch_category_articles(
             category, info["url"], info["pagination_tdi"]
         )
@@ -239,4 +252,17 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+    
+    categories = None
+    if len(sys.argv) > 1:
+        # Support: python scrape_links.py national,business
+        categories = sys.argv[1].split(",")
+        categories = [c.strip() for c in categories if c.strip()]
+        invalid = [c for c in categories if c not in CATEGORIES]
+        if invalid:
+            print(f"Invalid categories: {invalid}")
+            print(f"Available: {', '.join(CATEGORIES.keys())}")
+            sys.exit(1)
+    
+    asyncio.run(main(categories=categories))

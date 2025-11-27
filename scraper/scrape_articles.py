@@ -8,6 +8,7 @@ import signal
 import sys
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 
@@ -100,6 +101,14 @@ def validate_today_links(data: Dict[str, Any]):
         return False
 
 
+def is_today_article(date_str: str) -> bool:
+    """Check if article date is from today."""
+    if not date_str:
+        return False
+    today = datetime.now().strftime("%Y-%m-%d")
+    return today in date_str
+
+
 def load_cached_articles():
     if ARTICLES_FILE.exists():
         try:
@@ -152,6 +161,12 @@ async def fetch_article_details(
         figcap = await contents_container.query_selector("figcaption")
         if img:
             featured_image_url = await img.get_attribute("src")
+            # If image URL is relative, try data-src (lazy loading) or srcset
+            if not featured_image_url or featured_image_url.startswith("data:"):
+                featured_image_url = await img.get_attribute("data-src") or await img.get_attribute("srcset")
+                if featured_image_url and "," in featured_image_url:
+                    # srcset has multiple URLs, take the first one
+                    featured_image_url = featured_image_url.split(",")[0].strip().split(" ")[0]
         if figcap:
             featured_caption = await figcap.inner_text()
 
@@ -176,6 +191,13 @@ async def fetch_with_retries(
             if attempt > retries:
                 logger.exception("Timeout fetching %s after %d attempts", url, attempt)
                 return None
+            # Clear cookies on timeout to attempt a fresh session on retry
+            try:
+                await page.context.clear_cookies()
+                logger.info("Cleared cookies for %s after timeout (attempt %d)", url, attempt)
+            except Exception as ce:
+                logger.warning("Failed to clear cookies after timeout for %s: %s", url, ce)
+
             wait = backoff_base * (2 ** (attempt - 1))
             logger.warning(
                 "Timeout fetching %s, retrying in %.1fs (%d/%d)",
@@ -209,6 +231,7 @@ async def scrape_all_articles(
     concurrency: int = 5,
     timeout: int = 15000,
     retries: int = 2,
+    categories: list = None,
 ):
     if not TODAY_LINKS_FILE.exists():
         logger.error("Missing %s - run scrape_links.py first", TODAY_LINKS_FILE)
@@ -220,6 +243,14 @@ async def scrape_all_articles(
     except Exception as e:
         logger.error("Failed to read today links: %s", e)
         return
+
+    # Filter by categories if specified
+    if categories:
+        today_links = {k: v for k, v in today_links.items() if k in categories}
+        if not today_links:
+            logger.warning("No valid categories found in today_links")
+            return
+        logger.info("Filtering to categories: %s", ", ".join(categories))
 
     if not validate_today_links(today_links):
         logger.error("today_links.json failed validation. Aborting.")
@@ -284,6 +315,10 @@ async def scrape_all_articles(
                         logger.debug("Shutdown set, skipping %s", link)
                         return (category, link, None)
                     page = page_pool[index % len(page_pool)]
+                    
+                    # Clear cookies before each article to bypass paywall
+                    await page.context.clear_cookies()
+                    
                     article = await fetch_with_retries(
                         page, link, retries=retries, timeout=timeout
                     )
@@ -299,10 +334,16 @@ async def scrape_all_articles(
         remove_lock()
         return
 
-    # Build resulting articles dict
-    articles = {} if force_rescrape else cached_articles.copy()
+    # Build resulting articles dict - only keep today's articles
+    articles = {}
     for cat in today_links.keys():
-        articles.setdefault(cat, [])
+        articles[cat] = []
+    
+    # Filter cached articles to only keep today's
+    for cat, article_list in cached_articles.items():
+        today_articles = [a for a in article_list if is_today_article(a.get("date", ""))]
+        if today_articles:
+            articles[cat] = today_articles
 
     updated = 0
     for item in fetched:
@@ -354,12 +395,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--retries", type=int, default=2, help="Retries for transient failures"
     )
+    parser.add_argument(
+        "--categories",
+        type=str,
+        help="Comma-separated categories to scrape (e.g., 'national,business')",
+    )
     args = parser.parse_args()
+    
+    categories = None
+    if args.categories:
+        categories = [c.strip() for c in args.categories.split(",") if c.strip()]
+    
     asyncio.run(
         scrape_all_articles(
             force_rescrape=args.force,
             concurrency=args.concurrency,
             timeout=args.timeout,
             retries=args.retries,
+            categories=categories,
         )
     )

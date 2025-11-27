@@ -178,3 +178,6 @@ pyrightconfig.json
 # Ignore data JSON files but keep examples
 data/*.json
 !data/*.json.example
+
+# Environment
+.env
