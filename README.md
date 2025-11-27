@@ -120,8 +120,132 @@ Notes:
 - **Schema validation**: optional `jsonschema` checks
 - **Structured logging**: timestamps and log levels
 
+## Docker Deployment
+
+### Quick Start with Docker Compose
+
+1. **Prerequisites**: Install [Docker](https://www.docker.com/products/docker-desktop) and [Docker Compose](https://docs.docker.com/compose/install/).
+
+2. **Create `.env` file**:
+
+```powershell
+copy .env.example .env
+# Edit .env and add your DISCORD_TOKEN
+```
+
+3. **Build and run**:
+
+```powershell
+docker-compose up -d
+```
+
+4. **View logs**:
+
+```powershell
+docker-compose logs -f bot
+```
+
+5. **Stop the bot**:
+
+```powershell
+docker-compose down
+```
+
+### Manual Docker Build
+
+Build the image:
+
+```bash
+docker build -t borneo-bulletin-bot:latest .
+```
+
+Run the container:
+
+```bash
+docker run -d \
+  --name borneo-bot \
+  -e DISCORD_TOKEN=your_token_here \
+  -v $(pwd)/data:/app/data \
+  --restart unless-stopped \
+  borneo-bulletin-bot:latest
+```
+
+View logs:
+
+```bash
+docker logs -f borneo-bot
+```
+
+### Deployment Platforms
+
+#### Railway (Recommended)
+
+1. Push to GitHub (`git push`)
+2. Connect repo at [railway.app](https://railway.app)
+3. Add `DISCORD_TOKEN` environment variable
+4. Deploy — Railway auto-detects Dockerfile
+5. Bot runs 24/7 on free tier (limited hours)
+
+#### Heroku (Legacy)
+
+```bash
+heroku container:push web
+heroku container:release web
+```
+
+#### Self-Hosted VPS (AWS, DigitalOcean, Azure)
+
+1. SSH into server
+2. Install Docker + Docker Compose
+3. Clone repo: `git clone https://github.com/anwari-fikri/borneo-bulletin-bot.git`
+4. `cd borneo-bulletin-bot && docker-compose up -d`
+5. Bot runs 24/7
+
+### Data Persistence
+
+Docker volumes mount `./data` folder to container `/app/data`:
+
+- Articles, links, and subscription data persist across restarts
+- Logs are mounted to `./logs`
+
+**Backup your data**:
+
+```bash
+docker cp borneo-bot:/app/data ./data-backup
+```
+
+### Environment Variables
+
+Set in `.env` or via `docker-compose.yml`:
+
+- `DISCORD_TOKEN` - Your bot token (required)
+- `IMAGE_PROXY_BASE` - Optional image proxy URL (e.g., `http://proxy:8000`)
+- `TZ` - Timezone for scheduler (default: `Asia/Kuala_Lumpur` for GMT+8)
+
+### Troubleshooting Docker
+
+**Bot keeps restarting:**
+
+```bash
+docker-compose logs bot
+# Check for DISCORD_TOKEN or connection errors
+```
+
+**Permission denied on volumes:**
+
+```bash
+chmod -R 755 ./data
+```
+
+**Out of disk space:**
+
+```bash
+docker system prune -a  # Remove unused images
+```
+
 ## Troubleshooting
 
 - **Playwright error**: run `poetry run playwright install`
 - **Lockfile blocks run**: check/remove `data/*.lock` if stale
 - **Slow runs**: lower `--concurrency` or raise `--timeout`
+- **Docker build fails**: ensure `poetry.lock` exists (`poetry lock` to regenerate)
