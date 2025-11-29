@@ -25,6 +25,26 @@ CATEGORIES = {
         "url": "https://borneobulletin.com.bn/category/business/",
         "pagination_tdi": "#tdi_107",
     },
+    "tech": {
+        "url": "https://borneobulletin.com.bn/category/tech/",
+        "pagination_tdi": "#tdi_107",
+    },
+    "lifstyle": {
+        "url": "https://borneobulletin.com.bn/category/lifstyle/",
+        "pagination_tdi": "#tdi_107",
+    },
+    "entertainment": {
+        "url": "https://borneobulletin.com.bn/category/entertainment/",
+        "pagination_tdi": "#tdi_107",
+    },
+    "sports": {
+        "url": "https://borneobulletin.com.bn/category/sports/",
+        "pagination_tdi": "#tdi_106",
+    },
+    "opinion": {
+        "url": "https://borneobulletin.com.bn/category/opinion/",
+        "pagination_tdi": "#tdi_106",
+    },
     # Add more categories here
 }
 
@@ -174,9 +194,21 @@ async def fetch_category_articles(category_name, url, pagination_selector):
         top_container = await page.query_selector(TOP_ARTICLES_SELECTOR)
         top_links = await top_container.query_selector_all(".td-module-thumb a")
         for link in top_links:
-            href = await link.get_attribute("href")
-            links.append(href)
-            print(f"[{category_name}][TOP] {href}")
+            # Check the article's time like we do for paginated articles
+            article = await link.evaluate_handle(
+                "el => el.closest('.td_module_flex')"
+            )
+            if not article:
+                continue
+            time_el = await article.query_selector("time.entry-date")
+            if not time_el:
+                continue
+            time_text = (await time_el.inner_text()).lower()
+
+            if any(keyword in time_text for keyword in TODAY_KEYWORDS):
+                href = await link.get_attribute("href")
+                links.append(href)
+                print(f"[{category_name}][TOP] {href}")
 
         # --- Paginated articles ---
         while True:

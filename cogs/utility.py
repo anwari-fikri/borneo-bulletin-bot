@@ -1,5 +1,5 @@
 """
-Utility cog: /ping, /help commands.
+Utility cog: /ping, /commands.
 """
 import discord
 from discord.ext import commands
@@ -21,9 +21,9 @@ class UtilityCog(commands.Cog):
         embed.add_field(
             name="📰 News Commands",
             value=(
-                "`/get_todays_news [category]` - Get today's news (auto-scrape if needed)\n"
-                "`/latest [category] [count]` - Get latest 1-3 articles (no scrape)\n"
-                "`/categories` - List all available categories"
+                "`/read_full [category]` - Read full articles in a thread for discussion\n"
+                "`/categories` - List all available categories\n"
+                "*Scheduled posts send compact digests at 9 AM GMT+8; click 'Show more' to browse or 'Start thread' to discuss*"
             ),
             inline=False,
         )
@@ -40,7 +40,10 @@ class UtilityCog(commands.Cog):
 
         embed.add_field(
             name="⏰ Schedule Commands",
-            value="`/toggle_scheduled_news [all/category]` - Toggle daily 9 AM GMT+8 posts",
+            value=(
+                "`/toggle_scheduled_news [all/category]` - Toggle daily 9 AM GMT+8 digest posts\n"
+                "*Digests show top 5 headlines; click 'Show more' for full articles or 'Start thread' to discuss*"
+            ),
             inline=False,
         )
 
@@ -48,7 +51,7 @@ class UtilityCog(commands.Cog):
             name="🛠️ Utility Commands",
             value=(
                 "`/ping` - Check bot latency\n"
-                "`/help` - Show this help message"
+                "`/commands` - Show this help message"
             ),
             inline=False,
         )

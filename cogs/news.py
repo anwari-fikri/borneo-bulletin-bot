@@ -4,6 +4,7 @@ Includes pagination for large result sets.
 """
 import discord
 from discord.ext import commands
+from discord import ui
 import logging
 from datetime import datetime
 import os
@@ -12,6 +13,8 @@ import io
 import hashlib
 import mimetypes
 import aiohttp
+import uuid
+import time
 
 logger = logging.getLogger("news_cog")
 
@@ -19,6 +22,8 @@ logger = logging.getLogger("news_cog")
 class NewsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # small in-memory cache for digest state (short-lived)
+        self._digest_cache = {}
 
     async def get_scraper_cog(self):
         """Get the scraper cog instance."""
@@ -107,9 +112,50 @@ class NewsCog(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name="get_todays_news", description="Get today's news from a category (auto-scrapes if needed).")
+    def _build_digest_embed(self, articles, category):
+        """Build a compact digest embed with all today's articles (title + short desc)."""
+        embed = discord.Embed(
+            title=f"📰 {category.capitalize()} - Today's News",
+            color=discord.Color.blue(),
+        )
+        for i, article in enumerate(articles, 1):
+            title = article.get("title", "No title")[:256]
+            url = article.get("url", "")
+            short = article.get("excerpt", "") or (article.get("content", "") or "")[:100]
+            embed.add_field(name=f"{i}. {title}", value=(f"{short}\n[Link]({url})" if url else short), inline=False)
+
+        # thumbnail: use first article image if available
+        first_image = articles[0].get("featured_image") if articles else None
+        proxy_base = os.getenv("IMAGE_PROXY_BASE")
+        if first_image:
+            if proxy_base:
+                embed.set_thumbnail(url=proxy_base.rstrip("/") + "/image?url=" + quote_plus(first_image))
+            else:
+                embed.set_thumbnail(url=first_image)
+
+        embed.set_footer(text=f"📖 Use `/read_full {category}` to read full articles in a thread • {len(articles)} articles today")
+        return embed
+
+    async def send_digest(self, channel, category, articles):
+        """Send a compact digest message to `channel` with interactive view."""
+        if not articles:
+            return None
+
+        digest_id = str(uuid.uuid4())
+        embed = self._build_digest_embed(articles, category)
+        view = DigestView(self, digest_id, articles, category)
+        # cache articles briefly for the view lifetime
+        self._digest_cache[digest_id] = {"articles": articles, "ts": time.time()}
+        try:
+            msg = await channel.send(embed=embed, view=view)
+        except Exception:
+            # fallback: send without view
+            msg = await channel.send(embed=embed)
+        return msg
+
+    @commands.hybrid_command(name="read_full", description="Read full articles for today in a threaded discussion.")
     @discord.app_commands.describe(category="Article category (e.g., 'national')")
-    async def get_todays_news(self, ctx, category: str = None):
+    async def read_full(self, ctx, category: str = None):
         scraper = await self.get_scraper_cog()
         if not scraper:
             await ctx.send("❌ Scraper cog not loaded.")
@@ -137,8 +183,20 @@ class NewsCog(commands.Cog):
         today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
 
         if today_articles:
-            # Serve from cache with pagination
-            await self._send_paginated_news(ctx, category, today_articles, "Today's News")
+            # Create thread and post articles inside
+            # Create a starter message and then create a thread from that message.
+            # This is more reliable across invocation contexts (message vs interaction).
+            try:
+                starter = await ctx.send(f"📖 Starting thread for **{category.capitalize()}** — preparing articles...")
+                thread = await starter.create_thread(name=f"📖 {category.capitalize()} - Full Articles")
+            except Exception as e:
+                logger.debug("Thread creation failed: %s", e)
+                # fallback: post directly into the channel if we cannot create a thread
+                await ctx.send(f"🔖 Could not create a thread (missing permissions?). Posting full articles in this channel instead.")
+                thread = ctx.channel
+
+            await thread.send(f"Reading **{len(today_articles)}** articles from {category.capitalize()} today...")
+            await self._send_paginated_news(thread, category, today_articles, "Today's News")
         else:
             # No today's articles; trigger category-specific scrape with progress
             status_msg = await ctx.send(f"🔄 No cached articles for today. Scraping **{category}**...\n_(This may take 30-60 seconds)_")
@@ -157,49 +215,20 @@ class NewsCog(commands.Cog):
                 today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
                 if today_articles:
                     await status_msg.delete()
-                    await self._send_paginated_news(ctx, category, today_articles, "Today's News (Fresh)", discord.Color.green())
+                    try:
+                        starter = await ctx.send(f"📖 Starting thread for **{category.capitalize()}** — preparing articles...")
+                        thread = await starter.create_thread(name=f"📖 {category.capitalize()} - Full Articles")
+                    except Exception as e:
+                        logger.debug("Thread creation failed after scrape: %s", e)
+                        await ctx.send(f"🔖 Could not create a thread (missing permissions?). Posting full articles in this channel instead.")
+                        thread = ctx.channel
+
+                    await thread.send(f"Reading **{len(today_articles)}** articles from {category.capitalize()} today...")
+                    await self._send_paginated_news(thread, category, today_articles, "Today's News (Fresh)", discord.Color.green())
                 else:
                     await status_msg.edit(content="❌ No articles found after scraping.")
             else:
                 await status_msg.edit(content="❌ Scraping failed. Try again later.")
-
-    @commands.hybrid_command(name="latest", description="Get the latest 1-3 articles from a category (no scrape).")
-    @discord.app_commands.describe(
-        category="Article category (e.g., 'national')",
-        count="Number of articles (1-3, default 3)"
-    )
-    async def latest(self, ctx, category: str = None, count: int = 3):
-        scraper = await self.get_scraper_cog()
-        if not scraper:
-            await ctx.send("❌ Scraper cog not loaded.")
-            return
-
-        if not category:
-            cats = scraper.get_categories()
-            if not cats:
-                await ctx.send("❌ No categories available.")
-                return
-            await ctx.send(f"📚 Available categories: {', '.join(cats)}\nUsage: `/latest [category] [count]`")
-            return
-
-        available = scraper.get_categories()
-        if category.lower() not in [c.lower() for c in available]:
-            await ctx.send(f"❌ Category '{category}' not found.")
-            return
-
-        count = max(1, min(count, 3))  # Clamp to 1-3
-        articles = scraper.get_articles_for_category(category)
-        latest_articles = articles[-count:] if articles else []
-
-        if latest_articles:
-            embed = discord.Embed(title=f"📰 Latest {count} - {category.capitalize()}", color=discord.Color.gold())
-            for i, article in enumerate(reversed(latest_articles), 1):
-                title = article.get("title", "No title")[:256]
-                url = article.get("url", "")
-                embed.add_field(name=f"{i}. {title}", value=f"[Read more]({url})" if url else "No URL", inline=False)
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send("❌ No articles in that category.")
 
     @commands.hybrid_command(name="categories", description="List all available article categories.")
     async def categories(self, ctx):
@@ -216,6 +245,77 @@ class NewsCog(commands.Cog):
         else:
             await ctx.send("❌ No categories available. Try scraping first.")
 
+    @commands.hybrid_command(name="send_digest", description="Send digest(s) to this channel. If no category provided, send all subscribed categories.")
+    @discord.app_commands.describe(category="Article category (e.g., 'national') or leave empty for all subscribed")
+    async def send_digest_cmd(self, ctx, category: str = None):
+        """Manually send digest(s) to the current channel."""
+        scraper = await self.get_scraper_cog()
+        if not scraper:
+            await ctx.send("❌ Scraper cog not loaded.")
+            return
+
+        available = scraper.get_categories()
+        
+        # If no category provided, use user's subscriptions
+        if not category:
+            subscription_cog = self.bot.get_cog("SubscriptionCog")
+            if not subscription_cog:
+                await ctx.send("❌ Subscription cog not loaded.")
+                return
+            
+            user_id = str(ctx.author.id)
+            if user_id not in subscription_cog.subscriptions or not subscription_cog.subscriptions[user_id]:
+                await ctx.send(f"ℹ️ You have no subscriptions. Use `/subscribe [category]` or `/subscribe all` first.")
+                return
+            
+            categories_to_send = sorted(list(subscription_cog.subscriptions[user_id]))
+        else:
+            # Single category provided
+            if category.lower() not in [c.lower() for c in available]:
+                await ctx.send(f"❌ Category '{category}' not found. Available: {', '.join(available)}")
+                return
+            categories_to_send = [category]
+
+        # Prepare categories that need scraping (no cached articles)
+        need_scrape = []
+        for cat in categories_to_send:
+            articles = scraper.get_articles_for_category(cat)
+            today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
+            if not today_articles:
+                need_scrape.append(cat)
+        
+        # Scrape all categories that need it
+        if need_scrape:
+            await ctx.send(f"🔄 Scraping {len(need_scrape)} category/categories...")
+            success = await scraper.run_scraper(force=False, categories=need_scrape)
+            if not success:
+                await ctx.send("❌ Scraping failed.")
+                return
+        
+        # Send digests for all categories
+        sent_count = 0
+        for cat in categories_to_send:
+            articles = scraper.get_articles_for_category(cat)
+            today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
+            
+            if today_articles:
+                msg = await self.send_digest(ctx.channel, cat, today_articles)
+                if msg:
+                    sent_count += 1
+        
+        if sent_count > 0:
+            await ctx.send(f"✅ Sent {sent_count} digest(s)!", delete_after=5)
+        else:
+            await ctx.send(f"❌ No articles found for the requested categor{'ies' if len(categories_to_send) > 1 else 'y'}.")
+
+
+class DigestView(ui.View):
+    def __init__(self, cog: NewsCog, digest_id: str, articles, category, timeout=900):
+        super().__init__(timeout=timeout)
+        self.cog = cog
+        self.digest_id = digest_id
+        self.articles = articles
+        self.category = category
 
 async def setup(bot):
     await bot.add_cog(NewsCog(bot))

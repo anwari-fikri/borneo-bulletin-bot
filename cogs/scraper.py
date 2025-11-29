@@ -11,6 +11,7 @@ from pathlib import Path
 from datetime import datetime
 from discord.ext import commands
 import discord
+from scraper.scrape_links import CATEGORIES
 
 logger = logging.getLogger("scraper_cog")
 
@@ -134,8 +135,7 @@ class ScraperCog(commands.Cog):
 
     def get_categories(self):
         """Return list of available categories."""
-        articles = self.load_articles()
-        return list(articles.keys())
+        return list(CATEGORIES.keys())
 
     def get_articles_for_category(self, category: str):
         """Get articles for a specific category."""

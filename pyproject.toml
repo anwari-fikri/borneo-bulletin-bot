@@ -29,3 +29,6 @@ dev = [
 
 [tool.poetry]
 package-mode = false
+
+[tool.ruff]
+select = ["E", "F"]

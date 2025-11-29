@@ -3,18 +3,31 @@
     {
       "url": "https://borneobulletin.com.bn/example-article-title/",
       "title": "Example Article Title",
-      "date": "2025-11-26T10:30:00+08:00",
-      "content": "This is the main content of the article. It includes all paragraphs extracted from the article page.",
+      "date": "2025-11-29T10:30:00+08:00",
+      "content": "This is the main content of the article. It includes all paragraphs extracted from the article page. The scraper will capture the full text from the website.",
       "featured_image": "https://example.com/image.jpg",
-      "featured_caption": "Optional caption for the featured image"
+      "featured_caption": "Optional caption for the featured image",
+      "excerpt": "Short preview of the article content for digest display"
     },
     {
       "url": "https://borneobulletin.com.bn/another-example-article/",
       "title": "Another Example Article",
-      "date": "2025-11-26T09:15:00+08:00",
-      "content": "Another article's content goes here.",
+      "date": "2025-11-29T09:15:00+08:00",
+      "content": "Another article's content goes here. Each article stores the complete text extracted from the website.",
       "featured_image": "https://example.com/another-image.jpg",
-      "featured_caption": "Another image caption"
+      "featured_caption": "Another image caption",
+      "excerpt": "Preview text for this article in the digest view"
+    }
+  ],
+  "business": [
+    {
+      "url": "https://borneobulletin.com.bn/business-news-today/",
+      "title": "Business News Today",
+      "date": "2025-11-29T08:45:00+08:00",
+      "content": "Business news article content here.",
+      "featured_image": "https://example.com/business-image.jpg",
+      "featured_caption": "Business news image",
+      "excerpt": "Business news brief for digest"
     }
   ]
 }
