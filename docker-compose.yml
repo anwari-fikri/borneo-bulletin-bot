@@ -7,7 +7,6 @@ services:
     restart: unless-stopped
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
-      - IMAGE_PROXY_BASE=${IMAGE_PROXY_BASE:-}
       - TZ=Asia/Kuala_Lumpur
     volumes:
       - ./data:/app/data
