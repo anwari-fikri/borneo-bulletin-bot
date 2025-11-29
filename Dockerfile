@@ -9,14 +9,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
+RUN pip install --no-cache-dir poetry
 
 # Copy dependency files
 COPY pyproject.toml poetry.lock* ./
 
 # Install Python dependencies (with no-dev for production)
-RUN pip install --no-cache-dir poetry
-
-# Install dependencies only (compatible with Poetry v2):
 RUN poetry config virtualenvs.in-project true && \
     poetry install --only main
 
@@ -60,7 +58,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD python -c "import os; exit(0 if os.path.exists('.env') else 1)" || exit 1
+    CMD python -c "import os; exit(0 if os.path.exists('/app/data') else 1)" || exit 1
 
 # Run the bot
 CMD ["python", "bot.py"]

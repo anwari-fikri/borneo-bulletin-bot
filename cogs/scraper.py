@@ -95,6 +95,11 @@ class ScraperCog(commands.Cog):
     async def _run_command(self, cmd, progress_callback=None):
         """Run a shell command asynchronously with progress streaming."""
         try:
+            # Strip 'poetry run' prefix for Docker compatibility
+            # In Docker, python is in PATH directly; in dev, poetry manages it
+            if len(cmd) >= 2 and cmd[0] == "poetry" and cmd[1] == "run":
+                cmd = cmd[2:]  # Remove 'poetry run' prefix
+            
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
