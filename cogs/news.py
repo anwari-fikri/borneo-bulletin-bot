@@ -29,88 +29,7 @@ class NewsCog(commands.Cog):
         """Get the scraper cog instance."""
         return self.bot.get_cog("ScraperCog")
 
-    async def _send_paginated_news(self, ctx, category, articles, title_suffix="Today's News", color=discord.Color.blue()):
-        """Send each article as its own embed with featured image."""
-        if not articles:
-            await ctx.send("❌ No articles to display.")
-            return
-        
-        total = len(articles)
-        for idx, article in enumerate(articles, 1):
-            # Title
-            title = article.get("title", "No title")[:256]
 
-            # Content: take first paragraph (split on newline), fallback to whole content
-            raw_content = article.get("content", "") or ""
-            first_par = ""
-            for part in raw_content.split("\n"):
-                p = part.strip()
-                if p:
-                    first_par = p
-                    break
-            if not first_par:
-                first_par = raw_content.strip()
-            # cap description to safe size for embeds (first paragraph)
-            description = first_par[:512]
-
-            # Prepare date text for footer so it's available before any sends
-            date_raw = article.get("date", "Unknown date")
-            date_text = date_raw
-            try:
-                dt = datetime.fromisoformat(date_raw)
-                date_text = dt.strftime("%d/%m/%Y")
-            except Exception:
-                pass
-
-            embed = discord.Embed(
-                title=title,
-                description=description,
-                color=color,
-                url=article.get("url", "")
-            )
-            embed.set_footer(text=f"{date_text} • Article {idx}/{total}")
-
-            # Add featured image - try to attach image bytes so Discord will always show it.
-            image = article.get("featured_image")
-            attached = False
-            if image and isinstance(image, str) and image.strip():
-                # First try: download image and send as attachment (attachment://filename)
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(image, headers={"User-Agent": "Mozilla/5.0"}, timeout=20) as resp:
-                            if resp.status == 200:
-                                img_bytes = await resp.read()
-                                ctype = resp.headers.get("Content-Type", "application/octet-stream")
-                                ext = mimetypes.guess_extension(ctype.split(";")[0].strip() ) or ".jpg"
-                                fname = hashlib.sha1(image.encode("utf-8")).hexdigest() + ext
-                                file_obj = discord.File(io.BytesIO(img_bytes), filename=fname)
-                                embed.set_image(url=f"attachment://{fname}")
-                                await ctx.send(embed=embed, file=file_obj)
-                                attached = True
-                except Exception as e:
-                    logger.debug("Could not download image for article %d: %s", idx, e)
-
-            if attached:
-                # already sent with attachment
-                continue
-
-            # Fallback: if proxy is configured, use proxy URL so Discord can fetch it
-            proxy_base = os.getenv("IMAGE_PROXY_BASE")
-            if image and proxy_base:
-                try:
-                    proxied = proxy_base.rstrip("/") + "/image?url=" + quote_plus(image)
-                    embed.set_image(url=proxied)
-                except Exception as e:
-                    logger.warning("Failed to set proxied image for article %d: %s", idx, e)
-
-            # Add caption if available
-            caption = article.get("featured_caption", "")
-            if caption:
-                embed.add_field(name="Caption", value=caption[:1024], inline=True)
-
-            # footer already set earlier
-
-            await ctx.send(embed=embed)
 
     def _build_digest_embed(self, articles, category):
         """Build a compact digest embed with all today's articles (title + short desc)."""
@@ -153,6 +72,95 @@ class NewsCog(commands.Cog):
             msg = await channel.send(embed=embed)
         return msg
 
+    async def _scrape_and_get_articles(self, ctx, scraper, category):
+        """Scrape a category and return today's articles, or None if scrape failed."""
+        status_msg = await ctx.send(f"🔄 No cached articles for today. Scraping **{category}**...\n_(This may take 30-60 seconds)_")
+        
+        async def update_progress(message):
+            try:
+                if "[SCRAPER]" in message or "Step" in message or "completed" in message.lower():
+                    await status_msg.edit(content=f"🔄 Scraping **{category}**...\n```\n{message}\n```")
+            except:
+                pass
+        
+        success = await scraper.run_scraper(force=False, categories=[category], progress_callback=update_progress)
+        if not success:
+            await status_msg.edit(content="❌ Scraping failed. Try again later.")
+            return None
+        
+        articles = scraper.get_articles_for_category(category)
+        today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
+        
+        if today_articles:
+            await status_msg.edit(content="✅ Scraping complete! Creating thread...")
+            return today_articles
+        else:
+            await status_msg.edit(content="❌ No articles found after scraping.")
+            return None
+
+    async def _post_articles_to_thread(self, thread, category, articles):
+        """Post article digests to a thread."""
+        await thread.send(f"Reading **{len(articles)}** articles from {category.capitalize()} today...")
+        for i, article in enumerate(articles, 1):
+            title = article.get("title", "No title")[:256]
+            url = article.get("url", "")
+            content = article.get("content", "") or ""
+            description = content[:4096]
+            
+            date_raw = article.get("date", "Unknown date")
+            date_text = date_raw
+            try:
+                dt = datetime.fromisoformat(date_raw)
+                date_text = dt.strftime("%d/%m/%Y")
+            except Exception:
+                pass
+            
+            embed = discord.Embed(
+                title=title,
+                description=description,
+                color=discord.Color.blue(),
+                url=url
+            )
+            embed.set_footer(text=f"{date_text} • Article {i}/{len(articles)}")
+            
+            # Add featured image - try to attach image bytes so Discord will always show it.
+            image = article.get("featured_image")
+            attached = False
+            if image and isinstance(image, str) and image.strip():
+                # First try: download image and send as attachment (attachment://filename)
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(image, headers={"User-Agent": "Mozilla/5.0"}, timeout=20) as resp:
+                            if resp.status == 200:
+                                img_bytes = await resp.read()
+                                ctype = resp.headers.get("Content-Type", "application/octet-stream")
+                                ext = mimetypes.guess_extension(ctype.split(";")[0].strip()) or ".jpg"
+                                fname = hashlib.sha1(image.encode("utf-8")).hexdigest() + ext
+                                file_obj = discord.File(io.BytesIO(img_bytes), filename=fname)
+                                embed.set_image(url=f"attachment://{fname}")
+                                await thread.send(embed=embed, file=file_obj)
+                                attached = True
+                except Exception as e:
+                    logger.debug("Could not download image for article %d: %s", i, e)
+
+            if attached:
+                # already sent with attachment
+                continue
+
+            # Fallback: if proxy is configured, use proxy URL so Discord can fetch it
+            proxy_base = os.getenv("IMAGE_PROXY_BASE")
+            if image and proxy_base:
+                try:
+                    proxied = proxy_base.rstrip("/") + "/image?url=" + quote_plus(image)
+                    embed.set_image(url=proxied)
+                except Exception as e:
+                    logger.warning("Failed to set proxied image for article %d: %s", i, e)
+
+            # Add caption if available
+            caption = article.get("featured_caption", "")
+            if caption:
+                embed.add_field(name="Caption", value=caption[:1024], inline=True)
+
     @commands.hybrid_command(name="read_full", description="Read full articles for today in a threaded discussion.")
     @discord.app_commands.describe(category="Article category (e.g., 'national')")
     async def read_full(self, ctx, category: str = None):
@@ -167,7 +175,7 @@ class NewsCog(commands.Cog):
             if not cats:
                 await ctx.send("❌ No categories available. Try scraping first.")
                 return
-            await ctx.send(f"📚 Available categories: {', '.join(cats)}\nUsage: `/get_todays_news [category]`")
+            await ctx.send(f"📚 Available categories: {', '.join(cats)}\nUsage: `/read_full [category]`")
             return
 
         # Check if category exists
@@ -176,59 +184,28 @@ class NewsCog(commands.Cog):
             await ctx.send(f"❌ Category '{category}' not found. Available: {', '.join(available)}")
             return
 
+        # Create thread first (upfront)
+        thread = None
+        try:
+            starter = await ctx.send(f"📖 Starting thread for **{category.capitalize()}** — preparing articles...")
+            thread = await starter.create_thread(name=f"📖 {category.capitalize()} - Full Articles")
+        except Exception as e:
+            logger.debug("Thread creation failed: %s", e)
+            await ctx.send(f"🔖 Could not create a thread (missing permissions?). Posting full articles in this channel instead.")
+            thread = ctx.channel
+
         # Get articles for category
         articles = scraper.get_articles_for_category(category)
-
-        # Filter by today's date
         today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
 
-        if today_articles:
-            # Create thread and post articles inside
-            # Create a starter message and then create a thread from that message.
-            # This is more reliable across invocation contexts (message vs interaction).
-            try:
-                starter = await ctx.send(f"📖 Starting thread for **{category.capitalize()}** — preparing articles...")
-                thread = await starter.create_thread(name=f"📖 {category.capitalize()} - Full Articles")
-            except Exception as e:
-                logger.debug("Thread creation failed: %s", e)
-                # fallback: post directly into the channel if we cannot create a thread
-                await ctx.send(f"🔖 Could not create a thread (missing permissions?). Posting full articles in this channel instead.")
-                thread = ctx.channel
+        # If no articles, scrape and retry
+        if not today_articles:
+            today_articles = await self._scrape_and_get_articles(ctx, scraper, category)
+            if not today_articles:
+                return
 
-            await thread.send(f"Reading **{len(today_articles)}** articles from {category.capitalize()} today...")
-            await self._send_paginated_news(thread, category, today_articles, "Today's News")
-        else:
-            # No today's articles; trigger category-specific scrape with progress
-            status_msg = await ctx.send(f"🔄 No cached articles for today. Scraping **{category}**...\n_(This may take 30-60 seconds)_")
-            
-            async def update_progress(message):
-                try:
-                    # Only update for key milestones
-                    if "[SCRAPER]" in message or "Step" in message or "completed" in message.lower():
-                        await status_msg.edit(content=f"🔄 Scraping **{category}**...\n```\n{message}\n```")
-                except:
-                    pass
-            
-            success = await scraper.run_scraper(force=False, categories=[category], progress_callback=update_progress)
-            if success:
-                articles = scraper.get_articles_for_category(category)
-                today_articles = [a for a in articles if scraper.is_today(a.get("date", ""))]
-                if today_articles:
-                    await status_msg.delete()
-                    try:
-                        starter = await ctx.send(f"📖 Starting thread for **{category.capitalize()}** — preparing articles...")
-                        thread = await starter.create_thread(name=f"📖 {category.capitalize()} - Full Articles")
-                    except Exception as e:
-                        logger.debug("Thread creation failed after scrape: %s", e)
-                        await ctx.send(f"🔖 Could not create a thread (missing permissions?). Posting full articles in this channel instead.")
-                        thread = ctx.channel
-
-                    await thread.send(f"Reading **{len(today_articles)}** articles from {category.capitalize()} today...")
-                    await self._send_paginated_news(thread, category, today_articles, "Today's News (Fresh)", discord.Color.green())
-                else:
-                    await status_msg.edit(content="❌ No articles found after scraping.")
-            else:
-                await status_msg.edit(content="❌ Scraping failed. Try again later.")
+        # Post articles to thread
+        await self._post_articles_to_thread(thread, category, today_articles)
 
     @commands.hybrid_command(name="categories", description="List all available article categories.")
     async def categories(self, ctx):
