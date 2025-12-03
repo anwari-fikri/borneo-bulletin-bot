@@ -4,8 +4,6 @@ import atexit
 import json
 import logging
 import os
-import signal
-import sys
 import tempfile
 import time
 from datetime import datetime
@@ -65,7 +63,7 @@ def check_and_create_lock():
                     logger.error(
                         "Lockfile exists and process %d is still running. Exiting.", pid
                     )
-                    sys.exit(1)
+                    return False
                 except OSError:
                     logger.info("Stale lockfile found (pid %d). Overwriting.", pid)
         except Exception:
@@ -73,6 +71,7 @@ def check_and_create_lock():
 
     with open(LOCK_FILE, "w", encoding="utf-8") as f:
         json.dump({"pid": os.getpid(), "ts": time.time()}, f)
+    return True
 
 
 def remove_lock():
@@ -228,7 +227,6 @@ async def fetch_with_retries(
 
 async def scrape_all_articles(
     force_rescrape: bool = False,
-    concurrency: int = 5,
     timeout: int = 15000,
     retries: int = 2,
     categories: list = None,
@@ -257,7 +255,8 @@ async def scrape_all_articles(
         return
 
     # create lockfile
-    check_and_create_lock()
+    if not check_and_create_lock():
+        return
 
     cached_articles = load_cached_articles()
     cached_urls = get_cached_url_titles(cached_articles)
@@ -288,46 +287,25 @@ async def scrape_all_articles(
         remove_lock()
         return
 
-    semaphore = asyncio.Semaphore(concurrency)
-    shutdown = False
-
-    def _on_signal(sig, frame):
-        nonlocal shutdown
-        logger.warning("Received signal %s, stopping new work...", sig)
-        shutdown = True
-
-    signal.signal(signal.SIGINT, _on_signal)
-    signal.signal(signal.SIGTERM, _on_signal)
-
     fetched = []
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context()
-            page_pool = [
-                await context.new_page()
-                for _ in range(min(concurrency, len(to_scrape)))
-            ]
+            page = await context.new_page()
 
-            async def worker(index, category, link):
-                async with semaphore:
-                    if shutdown:
-                        logger.debug("Shutdown set, skipping %s", link)
-                        return (category, link, None)
-                    page = page_pool[index % len(page_pool)]
-                    
-                    # Clear cookies before each article to bypass paywall
-                    await page.context.clear_cookies()
-                    
-                    article = await fetch_with_retries(
-                        page, link, retries=retries, timeout=timeout
-                    )
-                    return (category, link, article)
+            for i, (category, link) in enumerate(to_scrape):
+                logger.info("Scraping %d/%d: %s", i + 1, len(to_scrape), link)
+                
+                # Clear cookies before each article to bypass paywall
+                await page.context.clear_cookies()
+                
+                article = await fetch_with_retries(
+                    page, link, retries=retries, timeout=timeout
+                )
+                fetched.append((category, link, article))
 
-            tasks = [worker(i, cat, url) for i, (cat, url) in enumerate(to_scrape)]
-            fetched = await asyncio.gather(*tasks, return_exceptions=False)
-
-            await asyncio.gather(*(p_.close() for p_ in page_pool))
+            await page.close()
             await browser.close()
     except Exception as e:
         logger.exception("Fatal error during scraping run: %s", e)
@@ -381,15 +359,49 @@ async def scrape_all_articles(
     remove_lock()
 
 
+def main(force=False, categories=None, timeout=15000, retries=2):
+    """
+    Main entry point for article scraping when called from CLI.
+    
+    Args:
+        force: Force rescrape all articles
+        categories: List of category names to scrape
+        timeout: Page timeout in ms
+        retries: Retries for transient failures
+    """
+    return asyncio.run(
+        scrape_all_articles(
+            force_rescrape=force,
+            timeout=timeout,
+            retries=retries,
+            categories=categories,
+        )
+    )
+
+
+async def main_async(force=False, categories=None, timeout=15000, retries=2):
+    """
+    Async entry point for article scraping when called from existing event loop.
+    
+    Args:
+        force: Force rescrape all articles
+        categories: List of category names to scrape
+        timeout: Page timeout in ms
+        retries: Retries for transient failures
+    """
+    return await scrape_all_articles(
+        force_rescrape=force,
+        timeout=timeout,
+        retries=retries,
+        categories=categories,
+    )
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Scrape article pages from today_links.json"
     )
     parser.add_argument(
         "--force", action="store_true", dest="force", help="Force rescrape of all links"
-    )
-    parser.add_argument(
-        "--concurrency", type=int, default=5, help="Number of concurrent page workers"
     )
     parser.add_argument("--timeout", type=int, default=15000, help="Page timeout in ms")
     parser.add_argument(
@@ -409,7 +421,6 @@ if __name__ == "__main__":
     asyncio.run(
         scrape_all_articles(
             force_rescrape=args.force,
-            concurrency=args.concurrency,
             timeout=args.timeout,
             retries=args.retries,
             categories=categories,

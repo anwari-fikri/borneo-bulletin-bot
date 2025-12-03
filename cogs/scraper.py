@@ -5,12 +5,11 @@ Supports progress logging and category-specific scraping.
 """
 import asyncio
 import json
-import subprocess
 import logging
 from pathlib import Path
 from datetime import datetime
 from discord.ext import commands
-import discord
+
 
 logger = logging.getLogger("scraper_cog")
 
@@ -18,6 +17,9 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 ARTICLES_FILE = DATA_DIR / "articles.json"
 TODAY_LINKS_FILE = DATA_DIR / "today_links.json"
 
+from scraper.scrape_links import main as scrape_links_main
+from scraper.scrape_articles import main_async as scrape_articles_main_async
+from scraper.scrape_links import CATEGORIES
 
 class ScraperCog(commands.Cog):
     def __init__(self, bot):
@@ -41,40 +43,49 @@ class ScraperCog(commands.Cog):
                 if progress_callback:
                     await progress_callback(msg)
                 
-                # Run scrape_links.py
+                # Step 1: Fetch links
                 msg = f"[SCRAPER] Step 1/2: Fetching links for {target}..."
                 logger.info(msg)
                 if progress_callback:
                     await progress_callback(msg)
                 
-                cmd_links = ["poetry", "run", "python", "scraper/scrape_links.py"]
-                if categories:
-                    cmd_links.append(",".join(categories))
-                
-                result = await self._run_command(cmd_links, progress_callback)
-                if result != 0:
-                    error_msg = f"[SCRAPER] Links fetch failed (code {result})"
-                    logger.error(error_msg)
+                try:
+                    # Call scrape_links directly
+                    comparison = await scrape_links_main(categories=categories)
+                    
+                    msg = f"[SCRAPER] Found {comparison['total_articles']} articles ({comparison['new_articles']} new)"
+                    logger.info(msg)
+                    if progress_callback:
+                        await progress_callback(msg)
+                        
+                except Exception as e:
+                    error_msg = f"[SCRAPER] Links fetch failed: {str(e)}"
+                    logger.error(error_msg, exc_info=True)
                     if progress_callback:
                         await progress_callback(error_msg)
                     return False
 
-                # Run scrape_articles.py
-                msg = f"[SCRAPER] Step 2/2: Scraping articles for {target}..."
+                # Step 2: Scrape articles
+                msg = f"[SCRAPER] Step 2/2: Scraping article content for {target}..."
                 logger.info(msg)
                 if progress_callback:
                     await progress_callback(msg)
-                
-                cmd_articles = ["poetry", "run", "python", "scraper/scrape_articles.py"]
-                if force:
-                    cmd_articles.append("--force")
-                if categories:
-                    cmd_articles.extend(["--categories", ",".join(categories)])
-                
-                result = await self._run_command(cmd_articles, progress_callback)
-                if result != 0:
-                    error_msg = f"[SCRAPER] Article scrape failed (code {result})"
-                    logger.error(error_msg)
+
+                try:
+                    # Call scrape_articles async function directly (no asyncio.run)
+                    await scrape_articles_main_async(
+                        force=force,
+                        categories=categories
+                    )
+                    
+                    msg = "[SCRAPER] Article scraping completed!"
+                    logger.info(msg)
+                    if progress_callback:
+                        await progress_callback(msg)
+                        
+                except Exception as e:
+                    error_msg = f"[SCRAPER] Article scrape failed: {str(e)}"
+                    logger.error(error_msg, exc_info=True)
                     if progress_callback:
                         await progress_callback(error_msg)
                     return False
@@ -84,42 +95,13 @@ class ScraperCog(commands.Cog):
                 if progress_callback:
                     await progress_callback(msg)
                 return True
+                
             except Exception as e:
                 error_msg = f"[SCRAPER] Error: {str(e)}"
                 logger.exception(error_msg)
                 if progress_callback:
                     await progress_callback(error_msg)
                 return False
-
-    async def _run_command(self, cmd, progress_callback=None):
-        """Run a shell command asynchronously with progress streaming."""
-        try:
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            
-            # Stream stdout in real-time
-            while True:
-                line = await process.stdout.readline()
-                if not line:
-                    break
-                text = line.decode().strip()
-                if text and progress_callback:
-                    await progress_callback(text)
-            
-            stdout, stderr = await process.communicate()
-            
-            # Log any stderr
-            if stderr:
-                err_text = stderr.decode().strip()
-                logger.warning("Command stderr: %s", err_text)
-            
-            return process.returncode
-        except Exception as e:
-            logger.exception("Command execution error: %s", e)
-            return 1
 
     def load_articles(self):
         """Load articles.json from disk. Return dict or empty dict on error."""
@@ -134,8 +116,7 @@ class ScraperCog(commands.Cog):
 
     def get_categories(self):
         """Return list of available categories."""
-        articles = self.load_articles()
-        return list(articles.keys())
+        return list(CATEGORIES.keys())
 
     def get_articles_for_category(self, category: str):
         """Get articles for a specific category."""
