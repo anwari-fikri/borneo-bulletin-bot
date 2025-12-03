@@ -23,14 +23,8 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install all Playwright/Chromium system dependencies
+# Install Playwright system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2t64 \
     libglib2.0-0 \
     libnss3 \
     libnspr4 \
@@ -43,7 +37,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxkbcommon0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
@@ -53,10 +46,10 @@ COPY --from=builder /app/.venv /app/.venv
 COPY . .
 
 # Install Playwright browsers
-RUN .venv/bin/playwright install chromium
+RUN .venv/bin/playwright install
 
 # Create data directory for persistence
-RUN mkdir -p /app/data /app/logs
+RUN mkdir -p /app/data
 
 # Set environment variables
 ENV PATH="/app/.venv/bin:$PATH" \
