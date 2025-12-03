@@ -117,6 +117,7 @@ class ScraperCog(commands.Cog):
     def get_categories(self):
         """Return list of available categories."""
         return list(CATEGORIES.keys())
+        return list(CATEGORIES.keys())
 
     def get_articles_for_category(self, category: str):
         """Get articles for a specific category."""
