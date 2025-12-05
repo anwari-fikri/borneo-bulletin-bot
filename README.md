@@ -1,3 +1,5 @@
+[I cant fix this cloudflare blocking my scraping when i host it on my VPS. I can run this on my main PC though]
+
 # Borneo Bulletin Discord Bot
 
 A Discord bot that fetches and shares latest news from Borneo Bulletin. The repository contains the scraper pipeline that collects articles daily.
@@ -8,7 +10,7 @@ A Discord bot that fetches and shares latest news from Borneo Bulletin. The repo
 
 - **Scraper** (`scraper/` directory): Collects today's article links and extracts full article content (title, date, content, featured image).
 - **Bot** (`bot.py` + `cogs/`): Discord bot with commands for news, subscriptions, and scheduled posts.
-- **Smart Digests**: Daily 9 AM GMT+8 scheduled posts send compact digests (title + excerpt) for each category you're subscribed to.
+- **Digests**: Daily 9 AM GMT+8 scheduled posts send compact digests (title + excerpt) for each category you're subscribed to.
 
 ## Setup
 
